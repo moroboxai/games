@@ -2,10 +2,9 @@
   "name": "@moroboxai-games/pong",
   "version": "0.1.0-alpha.1",
   "description": "Pong game",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "build/index.js",
   "scripts": {
-    "tsc": "tsc",
+    "lib": "tsc -p ./tsconfig-lib.json",
     "lint:gulp": "gulp lint",
     "build:gulp": "gulp build",
     "build:web": "gulp build --web",

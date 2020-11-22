@@ -6,14 +6,22 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
     private _root: HTMLElement;
     private _sdk: MoroboxAIGameSDK.IMoroboxAIGameSDK;
     private app: PIXI.Application;
-    private _player: PIXI.Sprite;
-    private dX: number;
-    private dY: number;
+    private _player: PIXI.Sprite = new PIXI.Sprite();
+    private dX: number = 0;
+    private dY: number = 0;
 
     constructor(options: MoroboxAIGameSDK.BootOptions) {
         super();
         this._root = options.root;
         this._sdk = options.sdk;
+
+        this.app = new PIXI.Application({
+            width: 400,
+            height: 300,
+            backgroundColor: 0x1099bb
+        });
+        this._root.appendChild(this.app.view);
+
         this._sdk.ready(() => this._loadAssets());
     }
 
@@ -31,13 +39,6 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
         /*const io = require('socket.io')();
         io.on('connection', client => { console.log('connection'); });
         io.listen(6900);*/
-
-        this.app = new PIXI.Application({
-            width: SCREEN_WIDTH,
-            height: SCREEN_HEIGHT,
-            backgroundColor: 0x1099bb
-        });
-        this._root.appendChild(this.app.view);
 
         // create a new Sprite from an image path
         const dX = 0.0;
