@@ -3,13 +3,26 @@ import * as PIXI from 'pixi.js';
 
 export class Game extends MoroboxAIGameSDK.AbstractGame
 {
+    private _root: HTMLElement;
+    private _sdk: MoroboxAIGameSDK.IMoroboxAIGameSDK;
     private app: PIXI.Application;
-    private player: PIXI.Sprite;
-    private dX: Number;
-    private dY: Number;
+    private _player: PIXI.Sprite;
+    private dX: number;
+    private dY: number;
 
-    constructor() {
+    constructor(options: MoroboxAIGameSDK.BootOptions) {
         super();
+        this._root = options.root;
+        this._sdk = options.sdk;
+        this._sdk.ready(() => this._loadAssets());
+    }
+
+    private _loadAssets(): void {
+        this._player = PIXI.Sprite.from(this._sdk.href('assets/tileset.png'));
+        this._run();
+    }
+
+    private _run(): void {
         this.dX = 0.0;
         this.dY = 0.0;
 
@@ -18,27 +31,26 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
         /*const io = require('socket.io')();
         io.on('connection', client => { console.log('connection'); });
         io.listen(6900);*/
-        
+
         this.app = new PIXI.Application({
             width: SCREEN_WIDTH,
             height: SCREEN_HEIGHT,
             backgroundColor: 0x1099bb
         });
-        document.body.appendChild(this.app.view);
-        
+        this._root.appendChild(this.app.view);
+
         // create a new Sprite from an image path
-        this.player = PIXI.Sprite.from('assets/tileset.png');
-        let dX = 0.0;
-        let dY = 0.0;
-        
+        const dX = 0.0;
+        const dY = 0.0;
+
         // center the sprite's anchor point
-        this.player.anchor.set(0.5);
-        
+        this._player.anchor.set(0.5);
+
         // move the sprite to the center of the screen
-        this.player.x = this.app.screen.width / 2;
-        this.player.y = this.app.screen.height / 2;
-        
-        this.app.stage.addChild(this.player);
+        this._player.x = this.app.screen.width / 2;
+        this._player.y = this.app.screen.height / 2;
+
+        this.app.stage.addChild(this._player);
 
         // listen for animate update
         this.app.ticker.add(delta => {
@@ -46,8 +58,8 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
             // delta is 1 if running at 100% performance
             // creates frame-independent transformation
             this.frame(this);
-            this.player.x += dX;
-            this.player.y += dY;
+            this._player.x += dX;
+            this._player.y += dY;
         });
     }
 
@@ -63,12 +75,15 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
     }
 
     public play(): void {
+        console.log('play');
     }
 
     public pause(): void {
+        console.log('pause');
     }
 
     public stop(): void {
+        console.log('stop');
     }
 
     public output(key: string, val?: any): any {
@@ -79,8 +94,8 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
             };
         } else if (key === 'pos') {
             return {
-                x: this.player.x,
-                y: this.player.y
+                x: this._player.x,
+                y: this._player.y
             };
         } else if (key === 'dir') {
             return {
@@ -99,4 +114,8 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
             this.dY = val;
         }
     }
+}
+
+export function boot(options: MoroboxAIGameSDK.BootOptions) {
+    const game = new Game(options);
 }
