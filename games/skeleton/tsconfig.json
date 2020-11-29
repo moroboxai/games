@@ -7,8 +7,6 @@
 			"es2019.object",
 			"dom"
 		],
-		"typeRoots" : ["node_modules/pixi.js"],
-		"types": ["pixi.js"],
         "outDir": "./lib",
         "strict": true
     },
