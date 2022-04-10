@@ -43,7 +43,18 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
         this._app.ticker.add((delta: number) => {
             // rotate the container!
             // use delta to create frame-independent transform
+            const input = options.input();
+            if ('right' in input && input.right) {
+                this._container.x += 2 * delta;
+            }
+            if ('left' in input && input.left) {
+                this._container.x -= 2 * delta;
+            }
             this._container.rotation -= 0.01 * delta;
+            options.sendState({
+                x: this._container.x,
+                y: this._container.y
+            });
         });
     }
 
