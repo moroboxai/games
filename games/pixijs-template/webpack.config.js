@@ -13,7 +13,10 @@ module.exports = {
     },
     output: {
         filename: 'boot.js',
-        path: path.resolve(__dirname, 'lib')
+        path: path.resolve(__dirname, 'lib'),
+        library: {
+          type: 'umd'
+        },
     },
     resolve: {
         extensions: ['.ts', '.js']

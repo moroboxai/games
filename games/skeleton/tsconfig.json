@@ -1,15 +1,25 @@
 {
     "compilerOptions": {
-		"module": "commonjs",
-		"target": "es2019",
-		"lib": [
-			"es2019",
-			"es2019.object",
-			"dom"
-		],
-        "outDir": "./lib",
-        "strict": true
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es6",
+        "noImplicitAny": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "outDir": "lib",
+        "baseUrl": ".",
+        "declaration": true,
+        "strict": true,
+        "stripInternal": true,
+        "lib": ["es5", "es6", "dom"],
+        "paths": {
+            "*": [
+                "node_modules/*"
+            ]
+        }
     },
-    "files": ["src/game.ts"],
-    "exclude": ["node_modules", "build", "**/__tests__/*"]
+    "include": [
+        "src/**/*"
+    ]
 }

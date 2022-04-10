@@ -1,7 +1,7 @@
 import * as MoroboxAIGameSDK from 'moroboxai-game-sdk';
 import * as PIXI from 'pixi.js';
 
-export class Game extends MoroboxAIGameSDK.AbstractGame
+export class Game implements MoroboxAIGameSDK.IGame
 {
     private app: PIXI.Application;
     private player: PIXI.Sprite;
@@ -9,7 +9,6 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
     private dY: Number;
 
     constructor() {
-        super();
         this.dX = 0.0;
         this.dY = 0.0;
 
@@ -51,7 +50,7 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
         });
     }
 
-    public help(): string {
+    help(): string {
         return 'TowerDefense game\n' +
         'outputs:\n' +
         '- screen_size: {x: screen width, y: screen height}\n' +
@@ -62,16 +61,19 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
         '- vertical: vertical speed';
     }
 
-    public play(): void {
+    frame(game: MoroboxAIGameSDK.IGame): void {
     }
 
-    public pause(): void {
+    play(): void {
     }
 
-    public stop(): void {
+    pause(): void {
     }
 
-    public output(key: string, val?: any): any {
+    stop(): void {
+    }
+
+    output(key: string, val?: any): any {
         if (key === 'screen_size') {
             return {
                 x: this.app.screen.width,
@@ -92,7 +94,7 @@ export class Game extends MoroboxAIGameSDK.AbstractGame
         return val;
     }
 
-    public input(key: string, val: any): void {
+    input(key: string, val: any): void {
         if (key === 'horizontal') {
             this.dX = val;
         } else if (key === 'vertical') {

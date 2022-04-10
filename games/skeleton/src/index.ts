@@ -1,13 +1,11 @@
 import * as MoroboxAIGameSDK from 'moroboxai-game-sdk';
 import * as PIXI from 'pixi.js';
 
-class PixiJSTemplateGame extends MoroboxAIGameSDK.AbstractGame
+class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
 {
     private _app: PIXI.Application;
 
     constructor(options: MoroboxAIGameSDK.BootOptions) {
-        super();
-
         // initialize PIXI application
         this._app = new PIXI.Application({
             width: 400,
@@ -18,18 +16,32 @@ class PixiJSTemplateGame extends MoroboxAIGameSDK.AbstractGame
         // attach PIXI view to DOM element
         options.root.appendChild(this._app.view);
     }
+    
+    help(): string {
+        throw new Error('Method not implemented.');
+    }
+    output(key: string, val?: any) {
+        throw new Error('Method not implemented.');
+    }
+    input(key: string, val: any): void {
+        throw new Error('Method not implemented.');
+    }
 
-    public play(): void
+    frame(game: MoroboxAIGameSDK.IGame): void {
+        
+    }
+
+    play(): void
     {
         console.log('play');
     }
 
-    public pause(): void
+    pause(): void
     {
         console.log('pause');
     }
 
-    public stop(): void
+    stop(): void
     {
         console.log('stop');
     }

@@ -1,25 +1,15 @@
 {
-  "name": "moroboxai-games",
-  "version": "0.1.0-alpha.1",
-  "description": "MoroboxAI games",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/moroboxai/moroboxai-games.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/moroboxai/moroboxai-games/issues"
-  },
-  "homepage": "https://github.com/moroboxai/moroboxai-games#readme",
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "games/*"
+  ],
   "devDependencies": {
-    "typescript": "^4.0.5"
+    "lerna": "^4.0.0"
+  },
+  "scripts": {
+    "bootstrap": "lerna bootstrap --hoist --force-local",
+    "build": "lerna run --stream build",
+    "test": "lerna run --stream test"
   }
 }

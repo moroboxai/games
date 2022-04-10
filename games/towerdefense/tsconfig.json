@@ -1,11 +1,25 @@
 {
     "compilerOptions": {
-        "target": "es5",
         "module": "commonjs",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es6",
+        "noImplicitAny": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "outDir": "lib",
+        "baseUrl": ".",
         "declaration": true,
-        "outDir": "./lib",
-        "strict": true
+        "strict": true,
+        "stripInternal": true,
+        "lib": ["es5", "es6", "dom"],
+        "paths": {
+            "*": [
+                "node_modules/*"
+            ]
+        }
     },
-    "include": ["src"],
-    "exclude": ["node_modules", "**/__tests__/*"]
+    "include": [
+        "src/**/*"
+    ]
 }

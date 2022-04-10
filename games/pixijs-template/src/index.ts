@@ -8,15 +8,13 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
     constructor(options: MoroboxAIGameSDK.BootOptions) {
         // initialize PIXI application
         this._app = new PIXI.Application({
-            width: 400,
-            height: 300,
+            width: 256,
+            height: 256,
+            view: options.root as HTMLCanvasElement,
             backgroundColor: 0x1099bb
         });
-
-        // attach PIXI view to DOM element
-        options.root.appendChild(this._app.view);
     }
-    
+
     help(): string {
         throw new Error('Method not implemented.');
     }
@@ -28,7 +26,6 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
     }
 
     frame(game: MoroboxAIGameSDK.IGame): void {
-        
     }
 
     play(): void
@@ -47,6 +44,6 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
     }
 }
 
-export function boot(options: MoroboxAIGameSDK.BootOptions) {
-    const game = new PixiJSTemplateGame(options);
+export function boot(options: MoroboxAIGameSDK.BootOptions): MoroboxAIGameSDK.IGame {
+    return new PixiJSTemplateGame(options);
 }
