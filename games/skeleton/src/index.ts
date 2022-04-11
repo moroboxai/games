@@ -5,7 +5,7 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
 {
     private _app: PIXI.Application;
 
-    constructor(options: MoroboxAIGameSDK.BootOptions) {
+    constructor(player: MoroboxAIGameSDK.IPlayer) {
         // initialize PIXI application
         this._app = new PIXI.Application({
             width: 400,
@@ -14,7 +14,7 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
         });
 
         // attach PIXI view to DOM element
-        options.root.appendChild(this._app.view);
+        player.root.appendChild(this._app.view);
     }
     
     help(): string {
@@ -47,6 +47,6 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
     }
 }
 
-export function boot(options: MoroboxAIGameSDK.BootOptions) {
-    const game = new PixiJSTemplateGame(options);
+export function boot(player: MoroboxAIGameSDK.IPlayer) {
+    const game = new PixiJSTemplateGame(player);
 }
