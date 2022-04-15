@@ -85,7 +85,7 @@ class PixiJSTemplateGame implements MoroboxAIGameSDK.IGame
     {
         console.log('play');
     }
-
+ 
     pause(): void
     {
         console.log('pause');

@@ -1,18 +1,41 @@
 'use strict'
 
+const path = require('path');
 const gulp = require('gulp');
 const webpack = require('webpack');
 const gulpWebpack = require('webpack-stream');
 
-gulp.task('compile', () => {	
+const webpackConfig = (prod) => ({
+    context: path.resolve(__dirname, 'src'),
+    entry: './index.ts',
+    mode: prod ? 'production' : 'development',
+    module: {
+        rules: [{
+            test: /\.tsx?$/,
+            use: 'ts-loader',
+            exclude: /node_modules/
+        }]
+    },
+    output: {
+        filename: prod ? 'boot.min.js' : 'boot.js',
+        path: path.resolve(__dirname),
+        library: {
+          type: 'umd'
+        },
+    },
+    resolve: {
+        extensions: ['.ts', '.js']
+    },
+});
+
+gulp.task('dev', () => {	
 	return gulp.src('./src/index.ts')
-    	.pipe(gulpWebpack(require('./webpack.config'), webpack))
-        .pipe(gulp.dest('lib/'));
+    	.pipe(gulpWebpack(webpackConfig(), webpack))
+        .pipe(gulp.dest('./'));
 });
 
-gulp.task('copy', () => {
-	return gulp.src('./lib/boot.js')
-		.pipe(gulp.dest('./'));
+gulp.task('build', () => {
+	return gulp.src('./src/index.ts')
+    	.pipe(gulpWebpack(webpackConfig(true), webpack))
+        .pipe(gulp.dest('./'));
 });
-
-gulp.task('build', gulp.series('compile', 'copy'));

@@ -1,14 +1,23 @@
 {
   "name": "root",
   "private": true,
-  "workspaces": [
-    "games/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "games/*"
+    ],
+    "nohoist": [
+      "**/moroboxai-player-web",
+      "**/moroboxai-player-web/**",
+      "**/pixi.js",
+      "**/pixi.js/**"
+    ]
+  },
   "devDependencies": {
-    "lerna": "^4.0.0"
+    "lerna": "^4.0.0",
+    "yarn": "^1.22.18"
   },
   "scripts": {
-    "bootstrap": "lerna bootstrap --hoist --force-local",
+    "bootstrap": "lerna bootstrap --force-local",
     "build": "lerna run --stream build",
     "test": "lerna run --stream test"
   }
