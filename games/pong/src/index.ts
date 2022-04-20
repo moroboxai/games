@@ -28,10 +28,12 @@ const HEADER_COLOR = COLOR_DARK;
 const BAR_COLOR = COLOR_MEDIUM;
 const BAR_HEIGHT = 8;
 const BAR_WIDTH = 4;
-const BAR_SPEED = 2;
+const BAR_SPEED = 0.75;
 const BAR_X_OFFSET = 0.1;
+const BAR_AI_THRESHOLD = 0.6;
 const BALL_COLOR = COLOR_BG;
 const BALL_SIZE = 2;
+const BALL_ANGLES = [45, -45, 135, 225];
 const FONT_NAME = 'MoroboxAIRetro';
 const FONT_PATH = 'assets/MoroboxAIRetro.fnt';
 
@@ -46,8 +48,37 @@ abstract class Entity extends PIXI.Sprite {
     // Get the state of this entity as a JSON dict
     public abstract state: any;
 
-    constructor() {
+    public get hwidth(): number {
+        return this.width / 2.0;
+    }
+
+    public get hheight(): number {
+        return this.height / 2.0;
+    }
+
+    public get left(): number {
+        return this.x - this.hwidth;
+    }
+
+    public get right(): number {
+        return this.x + this.hwidth;
+    }
+
+    public get top(): number {
+        return this.y - this.hheight;
+    }
+
+    public get bottom(): number {
+        return this.y + this.hheight;
+    }
+
+    constructor(width: number, height: number, tint: number) {
         super(PIXI.Texture.WHITE);
+
+        this.width = width;
+        this.height = height;
+        this.tint = tint;
+        this.anchor.set(0.5);
     }
 
     // Update the physics for this entity
@@ -69,15 +100,12 @@ class Bar extends Entity {
     }
 
     constructor(controller: MoroboxAIGameSDK.IController, width: number, height: number, tint: number) {
-        super();
+        super(width, height, tint);
 
         this._controller = controller;
-        this.width = width;
-        this.height = height;
-        this.tint = tint;
-        this.anchor.set(0.5);
     }
 
+    // Update bar position and check collisions with screen bounds
     public tick(delta: number) {
         const inputs: Inputs = this._controller.inputs();
 
@@ -87,10 +115,10 @@ class Bar extends Entity {
             this.position.y += BAR_SPEED * delta;
         }
 
-        if (this.position.y < 0) {
-            this.position.y = 0;
-        } else if (this.position.y > SCREEN_HEIGHT) {
-            this.position.y = SCREEN_HEIGHT;
+        if (this.position.y < this.hheight) {
+            this.position.y = this.hheight;
+        } else if (this.position.y > SCREEN_HEIGHT - this.hheight) {
+            this.position.y = SCREEN_HEIGHT - this.hheight;
         }
     }
 }
@@ -108,24 +136,71 @@ class Ball extends Entity {
     }
 
     constructor(size: number, tint: number) {
-        super();
-
-        this.width = size;
-        this.height = size;
-        this.tint = tint;
-        this.anchor.set(0.5);
+        super(size, size, tint);
     }
 
+    // Update ball position and check collisions with screen bounds
     public tick(delta: number) {
         this.position.x += this.velocity.x * delta;
         this.position.y += this.velocity.y * delta;
 
-        if (this.position.y < 0) {
-            this.position.y = 0;
+        if (this.position.y < this.hheight) {
+            this.position.y = this.hheight;
             this.velocity.y *= -1;
-        } else if (this.position.y > SCREEN_HEIGHT) {
-            this.position.y = SCREEN_HEIGHT;
+        } else if (this.position.y > SCREEN_HEIGHT - this.hheight) {
+            this.position.y = SCREEN_HEIGHT - this.hheight;
             this.velocity.y *= -1;
+        }
+    }
+}
+
+// Builtin AI controller that can be overriden by user AI
+class AIController implements MoroboxAIGameSDK.IController {
+    // Controller provided by moroboxai-player-sdk
+    private _controller: MoroboxAIGameSDK.IController;
+
+    // Inputs of the builtin AI
+    private _inputs: Inputs = {};
+
+    get id(): number {
+        return this._controller.id;
+    }
+
+    get isBound(): boolean {
+        return this._controller.isBound;
+    }
+
+    get label(): string {
+        return 'ai';
+    }
+
+    constructor(controller: MoroboxAIGameSDK.IController) {
+        this._controller = controller;
+    }
+
+    sendState(state: any): void {
+        this._controller.sendState(state);
+    }
+
+    inputs() {
+        // override with user AI
+        if (this._controller.isBound) {
+            return this._controller.inputs;
+        }
+
+        return this._inputs;
+    }
+
+    tick(bar: Bar, ball: Ball) {
+        if (ball.y < bar.y - bar.height * BAR_AI_THRESHOLD) {
+            this._inputs.up = true;
+            this._inputs.down = false;
+        } else if (ball.y > bar.y + bar.height * BAR_AI_THRESHOLD) {
+            this._inputs.up = false;
+            this._inputs.down = true;
+        } else {
+            this._inputs.up = false;
+            this._inputs.down = false;
         }
     }
 }
@@ -139,6 +214,22 @@ class Header extends PIXI.Container {
 
     // Text displayed for player 2 (right side)
     private _p2Text?: PIXI.BitmapText;
+
+    // Player 1 controller (left side)
+    private _p1?: MoroboxAIGameSDK.IController;
+
+    // Player 2 controller (right side)
+    private _p2?: MoroboxAIGameSDK.IController;
+    
+    public set p1(controller: MoroboxAIGameSDK.IController) {
+        this._p1 = controller;
+        this._updateP1();
+    }
+
+    public set p2(controller: MoroboxAIGameSDK.IController) {
+        this._p2 = controller;
+        this._updateP2();
+    }
 
     constructor(width: number, height: number) {
         super();
@@ -159,18 +250,20 @@ class Header extends PIXI.Container {
         this._p2Text.position.set(1, 1);
         this.addChild(this._p2Text);
 
-        this.updateP1('HUMAN');
-        this.updateP2('AI');
+        this._updateP1();
+        this._updateP2();
     }
 
-    public updateP1(value: string) {
+    private _updateP1() {
         if (this._p1Text !== undefined) {
+            const value = this._p1 !== undefined ? this._p1.label.toUpperCase() : '';
             this._p1Text.text = `P1:${value}`;
         }
     }
 
-    public updateP2(value: string) {
+    private _updateP2() {
         if (this._p2Text !== undefined) {
+            const value = this._p2 !== undefined ? this._p2.label.toUpperCase() : '';
             this._p2Text.text = `${value}:P2`;
             this._p2Text.position.x = this._background.width - this._p2Text.textWidth;
         }
@@ -229,6 +322,8 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     private _footer: Footer;
     private _bars: { left: Bar, right: Bar };
     private _ball: Ball;
+    private _playerController: MoroboxAIGameSDK.IController;
+    private _aiController: AIController;
 
     /**
      * Informations sent to AIs:
@@ -282,16 +377,23 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._resize();
 
         // create procedural sprites for bars and ball
+        this._playerController = player.controller(0)!;
+        this._aiController = new AIController(player.controller(1)!);
+
         this._bars = {
-            left: new Bar(player.controller(0)!, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR),
-            right: new Bar(player.controller(1)!, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR)
+            left: new Bar(this._playerController, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR),
+            right: new Bar(this._aiController, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR)
         }
 
         this._ball = new Ball(BALL_SIZE, BALL_COLOR);
 
         this._gameBuffer.container.addChild(this._bars.left, this._bars.right, this._ball);
 
+        // initialize the header
         this._header = new Header(UI_SCREEN_WIDTH, HEADER_HEIGHT);
+        this._header.p1 = this._playerController;
+        this._header.p2 = this._aiController;
+
         this._uiBuffer.container.addChild(this._header);
 
         this._footer = new Footer(UI_SCREEN_WIDTH, HEADER_HEIGHT);
@@ -328,15 +430,39 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._bars.left.position.set(SCREEN_WIDTH * BAR_X_OFFSET, HSCREEN_HEIGHT);
         this._bars.right.position.set(SCREEN_WIDTH - SCREEN_WIDTH * BAR_X_OFFSET, HSCREEN_HEIGHT);
         this._ball.position.set(HSCREEN_WIDTH, HSCREEN_HEIGHT);
-        this._ball.velocity.set((Math.random() * 2 - 1), (Math.random() * 2 - 1));
+
+        const angle = (BALL_ANGLES[Math.ceil(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
+        this._ball.velocity.set(Math.cos(angle), Math.sin(angle));
+    }
+
+    private _checkCollision(bar: Bar, ball: Ball) {
+        // only check if the ball is moving toward the bar
+        if ((bar.x < ball.x && ball.velocity.x > 0) ||
+            (bar.x > ball.x && ball.velocity.x < 0)) {
+            return;
+        }
+
+        // ball is too far from the bar
+        if ((Math.abs(bar.x - ball.x) > (bar.hwidth + ball.hwidth)) ||
+            (Math.abs(bar.y - ball.y) > (bar.hheight + ball.hheight))) {
+            return;
+        }
+
+        ball.velocity.x *= -1;
     }
 
     private _tick(delta: number) {
-        // fetch inputs for both AIs
+        // tick the game elements
+        this._aiController.tick(this._bars.right, this._ball);
         this._bars.left.tick(delta);
         this._bars.right.tick(delta);
         this._ball.tick(delta);
 
+        // check for collisions between ball and bars
+        this._checkCollision(this._bars.left, this._ball);
+        this._checkCollision(this._bars.right, this._ball);
+
+        // check game over
         if (this._ball.position.x < 0 || this._ball.position.x > SCREEN_WIDTH) {
             this._reset();
         }
