@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
+        "module": "ES6",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "target": "es6",
@@ -9,7 +9,7 @@
         "sourceMap": true,
         "outDir": "lib",
         "baseUrl": ".",
-        "declaration": true,
+        "declaration": false,
         "strict": true,
         "stripInternal": true,
         "lib": ["es5", "es6", "dom"],
