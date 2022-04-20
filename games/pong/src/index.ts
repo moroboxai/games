@@ -1,12 +1,21 @@
+/**
+ * Sample of a Pong game with PixiJS made for MoroboxAI.
+ * 
+ * It should be fairly easy to read and understand as I tried
+ * to separate the different elements correctly and avoid having
+ * too many interconnections.
+ */
 import * as MoroboxAIGameSDK from 'moroboxai-game-sdk';
 import * as PIXI from 'pixi.js';
 
+// Color palette of the GB
 const COLOR_BG = 0xCADC9F;
 const COLOR_DARK = 0x0F380F;
 const COLOR_MEDIUM = 0x306230;
 const COLOR_LIGHT = 0x8BAC0F;
 const COLOR_LIGHTER = 0x9BBC0F;
 
+// Define the maximum constants here
 const SCREEN_WIDTH = 128;
 const SCREEN_HEIGHT = 64;
 const HSCREEN_WIDTH = SCREEN_WIDTH / 2.0;
@@ -23,69 +32,58 @@ const BAR_SPEED = 2;
 const BAR_X_OFFSET = 0.1;
 const BALL_COLOR = COLOR_BG;
 const BALL_SIZE = 2;
+const FONT_NAME = 'MoroboxAIRetro';
+const FONT_PATH = 'assets/MoroboxAIRetro.fnt';
 
-// Possible inputs for AIs
+// Possible inputs for player and AIs
 interface Inputs {
-    up: boolean;
-    down: boolean;
+    up?: boolean;
+    down?: boolean;
 }
 
-abstract class Entity {
-    public sprite: PIXI.Sprite;
-
+// Base class for the bars and the ball
+abstract class Entity extends PIXI.Sprite {
+    // Get the state of this entity as a JSON dict
     public abstract state: any;
 
-    public get position(): PIXI.ObservablePoint {
-        return this.sprite.position;
-    }
-
     constructor() {
-        this.sprite = PIXI.Sprite.from(PIXI.Texture.WHITE);
+        super(PIXI.Texture.WHITE);
     }
 
+    // Update the physics for this entity
     public abstract tick(delta: number): void;
 }
 
+// Class for the player and AI bars
 class Bar extends Entity {
-    // Controller id
-    public _id: number;
-    // AI inputs
-    public _inputs: Inputs = { up: false, down: false };
+    // Controller instance
+    public _controller: MoroboxAIGameSDK.IController;
 
-    public get id(): number {
-        return this._id;
-    }
-
-    public get inputs(): Inputs {
-        return this._inputs;
-    }
-
-    public set inputs(value: any) {
-        this._inputs.up = value.up === true;
-        this._inputs.down = value.down === true;
-    }
-
+    // Informations sent to AIs
     public get state(): any {
         return {
-            id: this._id,
-            x: this.sprite.x,
-            y: this.sprite.y
+            id: this._controller.id,
+            x: this.x,
+            y: this.y
         };
     }
 
-    constructor(id: number, width: number, height: number, tint: number) {
+    constructor(controller: MoroboxAIGameSDK.IController, width: number, height: number, tint: number) {
         super();
-        this._id = id;
-        this.sprite.width = width;
-        this.sprite.height = height;
-        this.sprite.tint = tint;
-        this.sprite.anchor.set(0.5);
+
+        this._controller = controller;
+        this.width = width;
+        this.height = height;
+        this.tint = tint;
+        this.anchor.set(0.5);
     }
 
     public tick(delta: number) {
-        if (this.inputs.up) {
+        const inputs: Inputs = this._controller.inputs();
+
+        if (inputs.up) {
             this.position.y -= BAR_SPEED * delta;
-        } else if (this.inputs.down) {
+        } else if (inputs.down) {
             this.position.y += BAR_SPEED * delta;
         }
 
@@ -97,22 +95,25 @@ class Bar extends Entity {
     }
 }
 
+// Class for the ball
 class Ball extends Entity {
     public velocity: PIXI.ObservablePoint = new PIXI.Point();
 
+    // Informations sent to AIs
     public get state(): any {
         return {
-            x: this.sprite.x,
-            y: this.sprite.y
+            x: this.x,
+            y: this.y
         };
     }
 
     constructor(size: number, tint: number) {
         super();
-        this.sprite.width = size;
-        this.sprite.height = size;
-        this.sprite.tint = tint;
-        this.sprite.anchor.set(0.5);
+
+        this.width = size;
+        this.height = size;
+        this.tint = tint;
+        this.anchor.set(0.5);
     }
 
     public tick(delta: number) {
@@ -129,27 +130,32 @@ class Ball extends Entity {
     }
 }
 
-// Header for displaying players infos
+// Header for displaying player and AIs infos
 class Header extends PIXI.Container {
-    private _sprite: PIXI.Sprite;
+    private _background: PIXI.Sprite;
+
+    // Text displayed for player 1 (left side)
     private _p1Text?: PIXI.BitmapText;
+
+    // Text displayed for player 2 (right side)
     private _p2Text?: PIXI.BitmapText;
 
     constructor(width: number, height: number) {
         super();
-        this._sprite = PIXI.Sprite.from(PIXI.Texture.WHITE);
-        this._sprite.width = width;
-        this._sprite.height = height;
-        this._sprite.tint = HEADER_COLOR;
-        this.addChild(this._sprite); 
+
+        this._background = PIXI.Sprite.from(PIXI.Texture.WHITE);
+        this._background.width = width;
+        this._background.height = height;
+        this._background.tint = HEADER_COLOR;
+        this.addChild(this._background); 
     }
 
     public onFontLoaded() {
-        this._p1Text = new PIXI.BitmapText('', {fontName: 'MoroboxAIRetro', align: 'left', tint: BAR_COLOR});
+        this._p1Text = new PIXI.BitmapText('', {fontName: FONT_NAME, align: 'left', tint: BAR_COLOR});
         this._p1Text.position.set(1, 1);
         this.addChild(this._p1Text);
         
-        this._p2Text = new PIXI.BitmapText('', {fontName: 'MoroboxAIRetro', align: 'left', tint: BAR_COLOR});
+        this._p2Text = new PIXI.BitmapText('', {fontName: FONT_NAME, align: 'left', tint: BAR_COLOR});
         this._p2Text.position.set(1, 1);
         this.addChild(this._p2Text);
 
@@ -166,25 +172,27 @@ class Header extends PIXI.Container {
     public updateP2(value: string) {
         if (this._p2Text !== undefined) {
             this._p2Text.text = `${value}:P2`;
-            this._p2Text.position.x = this._sprite.width - this._p2Text.textWidth;
+            this._p2Text.position.x = this._background.width - this._p2Text.textWidth;
         }
     }
 }
 
 // Footer for displaying additional infos
 class Footer extends PIXI.Container {
-    private _sprite: PIXI.Sprite;
+    private _background: PIXI.Sprite;
 
     constructor(width: number, height: number) {
         super();
-        this._sprite = PIXI.Sprite.from(PIXI.Texture.WHITE);
-        this._sprite.width = width;
-        this._sprite.height = height;
-        this._sprite.tint = HEADER_COLOR;
-        this.addChild(this._sprite); 
+
+        this._background = PIXI.Sprite.from(PIXI.Texture.WHITE);
+        this._background.width = width;
+        this._background.height = height;
+        this._background.tint = HEADER_COLOR;
+        this.addChild(this._background); 
     }
 }
 
+// RenderTexture used to render the game offscreen
 class BackBuffer {
     public container: PIXI.Container;
     public buffer: PIXI.RenderTexture;
@@ -203,20 +211,27 @@ class BackBuffer {
     }
 }
 
+// The game itself
 class PongGame implements MoroboxAIGameSDK.IGame {
     private _app: PIXI.Application;
+
+    // The player provided by moroboxai-player-sdk
     private _player: MoroboxAIGameSDK.IPlayer;
-    private _uiBuffer: BackBuffer;
+
+    // Buffer where the game will be rendered
     private _gameBuffer: BackBuffer;
+
+    // Buffer where the game + extra UI will be rendered
+    private _uiBuffer: BackBuffer;
+
+    // Different elements of the game and UI
     private _header: Header;
     private _footer: Footer;
-    private _bars!: { left: Bar, right: Bar };
-    private _ball!: Ball;
+    private _bars: { left: Bar, right: Bar };
+    private _ball: Ball;
 
     /**
-     * Get the game state sent to AIs.
-     * 
-     * Format:
+     * Informations sent to AIs:
      * 
      *   {
      *     bars: [
@@ -241,16 +256,17 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         // initialize PIXI application
         this._app = new PIXI.Application({
-            width: UI_SCREEN_WIDTH,
-            height: UI_SCREEN_HEIGHT,
             backgroundColor: BACKGROUND_COLOR,
             resolution: window.devicePixelRatio || 1
         });
 
         PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
-        // attach PIXI view to DOM element
+        // attach PIXI view to root HTML element
         player.root.appendChild(this._app.view);
+
+        // force resizing the root HTML element to game size
+        player.resize(UI_SCREEN_WIDTH * 4, UI_SCREEN_HEIGHT * 4);
 
         // buffer for rendering game elements
         this._gameBuffer = new BackBuffer(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -267,13 +283,13 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         // create procedural sprites for bars and ball
         this._bars = {
-            left: new Bar(0, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR),
-            right: new Bar(1, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR)
+            left: new Bar(player.controller(0)!, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR),
+            right: new Bar(player.controller(1)!, BAR_WIDTH, BAR_HEIGHT, BAR_COLOR)
         }
 
         this._ball = new Ball(BALL_SIZE, BALL_COLOR);
 
-        this._gameBuffer.container.addChild(this._bars.left.sprite, this._bars.right.sprite, this._ball.sprite);
+        this._gameBuffer.container.addChild(this._bars.left, this._bars.right, this._ball);
 
         this._header = new Header(UI_SCREEN_WIDTH, HEADER_HEIGHT);
         this._uiBuffer.container.addChild(this._header);
@@ -283,7 +299,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._uiBuffer.container.addChild(this._footer);
 
         const loader = new PIXI.Loader();
-        loader.add(this._player.gameServer.href('assets/MoroboxAIRetro.fnt'))
+        loader.add(this._player.gameServer.href(FONT_PATH))
             .load((loader, resources) => {
                 this._header.onFontLoaded();
             });
@@ -317,10 +333,6 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
     private _tick(delta: number) {
         // fetch inputs for both AIs
-        const inputs = this._player.input();
-        this._bars.left.inputs = inputs[0];
-        this._bars.right.inputs = inputs[1];
-
         this._bars.left.tick(delta);
         this._bars.right.tick(delta);
         this._ball.tick(delta);
@@ -340,15 +352,6 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     help(): string {
         throw new Error('Method not implemented.');
     }
-    output(key: string, val?: any) {
-        throw new Error('Method not implemented.');
-    }
-    input(key: string, val: any): void {
-        throw new Error('Method not implemented.');
-    }
-
-    frame(game: MoroboxAIGameSDK.IGame): void {
-    }
 
     play(): void {
         console.log('play');
@@ -363,6 +366,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     }
 }
 
+// Boot function exported for moroboxai-player-sdk
 export function boot(player: MoroboxAIGameSDK.IPlayer): MoroboxAIGameSDK.IGame {
     return new PongGame(player);
 }
