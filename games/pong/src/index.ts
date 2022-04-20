@@ -431,7 +431,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._bars.right.position.set(SCREEN_WIDTH - SCREEN_WIDTH * BAR_X_OFFSET, HSCREEN_HEIGHT);
         this._ball.position.set(HSCREEN_WIDTH, HSCREEN_HEIGHT);
 
-        const angle = (BALL_ANGLES[Math.ceil(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
+        const angle = (BALL_ANGLES[Math.floor(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
         this._ball.velocity.set(Math.cos(angle), Math.sin(angle));
     }
 
