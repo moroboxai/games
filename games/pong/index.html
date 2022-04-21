@@ -4,16 +4,41 @@
     </head>
     <body>
         <div id="player"></div>
+        <div id="editor"></div>
     </body>
 
     <script type="text/javascript" src="node_modules/moroboxai-player-web/lib/umd/moroboxai-player-web.js"></script>
+    <script type="text/javascript" src="node_modules/moroboxai-editor-web/lib/umd/moroboxai-editor-web.js"></script>
     <script type="text/javascript">
-        MoroboxAIPlayer.init({
+        const player = MoroboxAIPlayer.init({
             element: document.getElementById("player"),
             url: "",
             splashart: "./assets/splashart.png",
             width: "256px",
             height: "256px"
+        });
+
+        MoroboxAIEditor.init({
+            element: document.getElementById("editor"),
+            value: 'function update(state) {\n' +
+'  // state contains:\n' +
+'  // \n' +
+'  //   {\n' +
+'  //     ball: {x: number, y: number},\n' +
+'  //     bars: [{id: number, x: number, y: number}, ...]\n' +
+'  //   }\n' +
+'  \n' +
+'  sendInputs({\n' +
+'    up: true,\n' +
+'    down: false\n' +
+'  });\n' +
+'}\n' +
+'\n' +
+'exports.update = update;',
+            width: "648px",
+            height: "400px",
+            onLoad: (value) => player.controller(0).loadAI(value),
+            onUnload: (value) => player.controller(0).unloadAI()
         });
     </script>
 
@@ -24,6 +49,10 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+        }
+
+        #editor {
+            margin-top: 1em;
         }
     </style>
 </html>
