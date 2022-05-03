@@ -20,6 +20,7 @@ const SCREEN_WIDTH = 128;
 const SCREEN_HEIGHT = 64;
 const HSCREEN_WIDTH = SCREEN_WIDTH / 2.0;
 const HSCREEN_HEIGHT = SCREEN_HEIGHT / 2.0;
+const PHYSICS_TIMESTEP = 0.01;
 const HEADER_HEIGHT = 6;
 const UI_SCREEN_WIDTH = SCREEN_WIDTH;
 const UI_SCREEN_HEIGHT = SCREEN_HEIGHT + HEADER_HEIGHT * 2;
@@ -107,7 +108,7 @@ abstract class Entity extends PIXI.Sprite {
     }
 
     // Update the physics for this entity
-    public abstract tick(delta: number): void;
+    public abstract update(delta: number): void;
 }
 
 // Class for the player and AI bars
@@ -131,7 +132,7 @@ class Bar extends Entity {
     }
 
     // Update bar position and check collisions with screen bounds
-    public tick(delta: number) {
+    public update(delta: number) {
         const inputs: Inputs = this._controller.inputs();
 
         if (inputs.up) {
@@ -170,7 +171,7 @@ class Ball extends Entity {
     }
 
     // Update ball position and check collisions with screen bounds
-    public tick(delta: number) {
+    public update(delta: number) {
         this.position.x += this.direction.x * this.speed * delta;
         this.position.y += this.direction.y * this.speed * delta;
 
@@ -186,40 +187,42 @@ class Ball extends Entity {
 
 // Collision detection https://codeincomplete.com/articles/javascript-pong/part4/
 function ballIntercept(ball: Ball, rect: any, nx: number, ny: number) {
+    let pt;
     if (nx < 0) {
-        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+        pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
             rect.right + ball.radius,
             rect.top - ball.radius,
             rect.right + ball.radius,
             rect.bottom + ball.radius,
             "right");
-    }
-    if (nx > 0) {
-        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+    } else if (nx > 0) {
+        pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
             rect.left - ball.radius,
             rect.top - ball.radius,
             rect.left - ball.radius,
             rect.bottom + ball.radius,
             "left");
     }
-    if (ny < 0) {
-        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
-            rect.left - ball.radius,
-            rect.bottom + ball.radius,
-            rect.right + ball.radius,
-            rect.bottom + ball.radius,
-            "bottom");
-    }
-    if (ny > 0) {
-        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
-            rect.left - ball.radius,
-            rect.top - ball.radius,
-            rect.right + ball.radius,
-            rect.top - ball.radius,
-            "top");
+    if (!pt) {
+        if (ny < 0) {
+            pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+                rect.left - ball.radius,
+                rect.bottom + ball.radius,
+                rect.right + ball.radius,
+                rect.bottom + ball.radius,
+                "bottom");
+        }
+        if (ny > 0) {
+            pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+                rect.left - ball.radius,
+                rect.top - ball.radius,
+                rect.right + ball.radius,
+                rect.top - ball.radius,
+                "top");
+        }
     }
 
-    return null;
+    return pt;
 }
 
 function intercept(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, d: string) {
@@ -321,7 +324,7 @@ class AIController implements MoroboxAIGameSDK.IController {
         }
     }
 
-    tick(bar: Bar, ball: Ball, delta: number) {
+    update(bar: Bar, ball: Ball, delta: number) {
         this._inputs.up = false;
         this._inputs.down = false;
 
@@ -500,6 +503,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     private _uiBuffer: BackBuffer;
 
     // Different elements of the game and UI
+    private _physics_accumulator: number = 0;
     private _header: Header;
     private _footer: Footer;
     private _bars: { left: Bar, right: Bar };
@@ -624,33 +628,46 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._header.p2Score = Math.min(p2, MAX_SCORE);
     }
 
+    // https://codeincomplete.com/articles/javascript-pong/part4/
     private _checkCollision(bar: Bar, ball: Ball) {
-        // only check if the ball is moving toward the bar
-        if ((bar.x < ball.x && ball.direction.x > 0) ||
-            (bar.x > ball.x && ball.direction.x < 0)) {
+        const pt = ballIntercept(ball, bar, ball.direction.x * ball.speed, ball.direction.y * ball.speed);
+        if (!pt) {
             return;
         }
 
-        // ball is too far from the bar
-        if ((Math.abs(bar.x - ball.x) > (bar.hwidth + ball.hwidth)) ||
-            (Math.abs(bar.y - ball.y) > (bar.hheight + ball.hheight))) {
-            return;
+        switch(pt.d) {
+            case 'left':
+            case 'right':
+                ball.x = pt.x;
+                ball.direction.x *= -1;
+                break;
+            case 'top':
+            case 'bottom':
+                console.log(pt);
+                ball.y = pt.y;
+                ball.direction.y *= -1;
+                break;
+            default:
+                break;
         }
 
-        ball.direction.x *= -1;
         ball.speed *= BALL_ACCELERATION;
     }
 
-    private _tick(delta: number) {
+    // Physics loop
+    private _update(delta: number) {
         // tick the game elements
-        this._aiController.tick(this._bars.right, this._ball, delta);
-        this._bars.left.tick(delta);
-        this._bars.right.tick(delta);
-        this._ball.tick(delta);
+        this._aiController.update(this._bars.right, this._ball, delta);
+        this._bars.left.update(delta);
+        this._bars.right.update(delta);
+        this._ball.update(delta);
 
         // check for collisions between ball and bars
-        this._checkCollision(this._bars.left, this._ball);
-        this._checkCollision(this._bars.right, this._ball);
+        if (this._ball.direction.x < 0) {
+            this._checkCollision(this._bars.left, this._ball);
+        } else {
+            this._checkCollision(this._bars.right, this._ball);
+        }
 
         // check game over
         if (this._ball.position.x < 0 || this._ball.position.x > SCREEN_WIDTH) {
@@ -664,10 +681,22 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         // send the new game state to AIs
         this._player.sendState(this._state);
+    }
 
-        // render back buffers
+    // Render loop
+    private _render() {
         this._gameBuffer.render(this._app.renderer);
         this._uiBuffer.render(this._app.renderer);
+    }
+
+    private _tick(delta: number) {
+        this._physics_accumulator += delta;
+        while (this._physics_accumulator > PHYSICS_TIMESTEP) {
+            this._update(PHYSICS_TIMESTEP);
+            this._physics_accumulator -= PHYSICS_TIMESTEP;
+        }
+
+        this._render();
     }
 
     help(): string {
