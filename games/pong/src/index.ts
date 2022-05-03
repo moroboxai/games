@@ -115,9 +115,6 @@ class Bar extends Entity {
     // Controller instance
     public _controller: MoroboxAIGameSDK.IController;
 
-    // Current score
-    public score: number = 0;
-
     // Informations sent to AIs
     public get state(): any {
         return {
@@ -355,12 +352,16 @@ class PlayerPanel extends PIXI.Container {
     private _scoreText?: PIXI.BitmapText;
     private _score: number = 0;
 
-    set controller(value: MoroboxAIGameSDK.IController) {
+    public set controller(value: MoroboxAIGameSDK.IController) {
         this._controller = value;
         this._update();
     }
 
-    set score(value: number) {
+    public get score(): number {
+        return this._score;
+    }
+
+    public set score(value: number) {
         this._score = value;
         this._update();
     }
@@ -413,8 +414,16 @@ class Header extends PIXI.Container {
         this._playerPanels[1].controller = controller;
     }
 
+    public get p1Score(): number {
+        return this._playerPanels[0].score;
+    }
+
     public set p1Score(value: number) {
         this._playerPanels[0].score = value;
+    }
+
+    public get p2Score(): number {
+        return this._playerPanels[1].score;
     }
 
     public set p2Score(value: number) {
@@ -611,12 +620,8 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     }
 
     private _update_score(p1: number, p2: number) {
-        p1 = Math.min(p1, MAX_SCORE);
-        p2 = Math.min(p2, MAX_SCORE);
-        this._bars.left.score = p1;
-        this._bars.right.score = p2;
-        this._header.p1Score = p1;
-        this._header.p2Score = p2;
+        this._header.p1Score = Math.min(p1, MAX_SCORE);
+        this._header.p2Score = Math.min(p2, MAX_SCORE);
     }
 
     private _checkCollision(bar: Bar, ball: Ball) {
@@ -650,9 +655,9 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         // check game over
         if (this._ball.position.x < 0 || this._ball.position.x > SCREEN_WIDTH) {
             if (this._ball.position.x < 0) {
-                this._update_score(this._bars.left.score, this._bars.right.score + 1);
+                this._update_score(this._header.p1Score, this._header.p2Score + 1);
             } else {
-                this._update_score(this._bars.left.score + 1, this._bars.right.score);
+                this._update_score(this._header.p1Score + 1, this._header.p2Score);
             }
             this._reset();
         }
