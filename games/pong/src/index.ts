@@ -15,7 +15,7 @@ const COLOR_MEDIUM = 0x306230;
 const COLOR_LIGHT = 0x8BAC0F;
 const COLOR_LIGHTER = 0x9BBC0F;
 
-// Define the maximum constants here
+// Define game constants here
 const SCREEN_WIDTH = 128;
 const SCREEN_HEIGHT = 64;
 const HSCREEN_WIDTH = SCREEN_WIDTH / 2.0;
@@ -24,18 +24,43 @@ const HEADER_HEIGHT = 6;
 const UI_SCREEN_WIDTH = SCREEN_WIDTH;
 const UI_SCREEN_HEIGHT = SCREEN_HEIGHT + HEADER_HEIGHT * 2;
 const BACKGROUND_COLOR = COLOR_LIGHT;
-const HEADER_COLOR = COLOR_DARK;
+const HEADER_BACKGROUND_COLOR = COLOR_DARK;
+const HEADER_TEXT_COLOR = COLOR_MEDIUM;
 const BAR_COLOR = COLOR_MEDIUM;
 const BAR_HEIGHT = 8;
 const BAR_WIDTH = 4;
 const BAR_SPEED = 0.75;
 const BAR_X_OFFSET = 0.1;
-const BAR_AI_THRESHOLD = 0.6;
+const BAR_AI_THRESHOLD = 0.25;
 const BALL_COLOR = COLOR_BG;
 const BALL_SIZE = 2;
 const BALL_ANGLES = [45, -45, 135, 225];
+const BALL_SPEED = 1.0;
+const BALL_ACCELERATION = 1.05;
+const MAX_SCORE = 99;
 const FONT_NAME = 'MoroboxAIRetro';
 const FONT_PATH = 'assets/MoroboxAIRetro.fnt';
+
+const AI_LEVELS = [
+    { reaction: 0.2, error: 40 }, // 0:  ai is losing by 8
+    { reaction: 0.3, error: 50 }, // 1:  ai is losing by 7
+    { reaction: 0.4, error: 60 }, // 2:  ai is losing by 6
+    { reaction: 0.5, error: 70 }, // 3:  ai is losing by 5
+    { reaction: 0.6, error: 80 }, // 4:  ai is losing by 4
+    { reaction: 0.7, error: 90 }, // 5:  ai is losing by 3
+    { reaction: 0.8, error: 100 }, // 6:  ai is losing by 2
+    { reaction: 0.9, error: 110 }, // 7:  ai is losing by 1
+    { reaction: 1.0, error: 120 }, // 8:  tie
+    { reaction: 1.1, error: 130 }, // 9:  ai is winning by 1
+    { reaction: 1.2, error: 140 }, // 10: ai is winning by 2
+    { reaction: 1.3, error: 150 }, // 11: ai is winning by 3
+    { reaction: 1.4, error: 160 }, // 12: ai is winning by 4
+    { reaction: 1.5, error: 170 }, // 13: ai is winning by 5
+    { reaction: 1.6, error: 180 }, // 14: ai is winning by 6
+    { reaction: 1.7, error: 190 }, // 15: ai is winning by 7
+    { reaction: 1.8, error: 200 }  // 16: ai is winning by 8
+];
+const AI_LEVEL_MEDIUM = 8;
 
 // Possible inputs for player and AIs
 interface Inputs {
@@ -90,6 +115,9 @@ class Bar extends Entity {
     // Controller instance
     public _controller: MoroboxAIGameSDK.IController;
 
+    // Current score
+    public score: number = 0;
+
     // Informations sent to AIs
     public get state(): any {
         return {
@@ -125,7 +153,8 @@ class Bar extends Entity {
 
 // Class for the ball
 class Ball extends Entity {
-    public velocity: PIXI.ObservablePoint = new PIXI.Point();
+    public direction: PIXI.ObservablePoint = new PIXI.Point();
+    public speed: number = 0;
 
     // Informations sent to AIs
     public get state(): any {
@@ -135,32 +164,103 @@ class Ball extends Entity {
         };
     }
 
+    public get radius(): number {
+        return this.hwidth;
+    }
+
     constructor(size: number, tint: number) {
         super(size, size, tint);
     }
 
     // Update ball position and check collisions with screen bounds
     public tick(delta: number) {
-        this.position.x += this.velocity.x * delta;
-        this.position.y += this.velocity.y * delta;
+        this.position.x += this.direction.x * this.speed * delta;
+        this.position.y += this.direction.y * this.speed * delta;
 
         if (this.position.y < this.hheight) {
             this.position.y = this.hheight;
-            this.velocity.y *= -1;
+            this.direction.y *= -1;
         } else if (this.position.y > SCREEN_HEIGHT - this.hheight) {
             this.position.y = SCREEN_HEIGHT - this.hheight;
-            this.velocity.y *= -1;
+            this.direction.y *= -1;
         }
     }
 }
 
+// Collision detection https://codeincomplete.com/articles/javascript-pong/part4/
+function ballIntercept(ball: Ball, rect: any, nx: number, ny: number) {
+    if (nx < 0) {
+        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+            rect.right + ball.radius,
+            rect.top - ball.radius,
+            rect.right + ball.radius,
+            rect.bottom + ball.radius,
+            "right");
+    }
+    if (nx > 0) {
+        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+            rect.left - ball.radius,
+            rect.top - ball.radius,
+            rect.left - ball.radius,
+            rect.bottom + ball.radius,
+            "left");
+    }
+    if (ny < 0) {
+        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+            rect.left - ball.radius,
+            rect.bottom + ball.radius,
+            rect.right + ball.radius,
+            rect.bottom + ball.radius,
+            "bottom");
+    }
+    if (ny > 0) {
+        return intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
+            rect.left - ball.radius,
+            rect.top - ball.radius,
+            rect.right + ball.radius,
+            rect.top - ball.radius,
+            "top");
+    }
+
+    return null;
+}
+
+function intercept(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, d: string) {
+    var denom = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
+    if (denom != 0) {
+        var ua = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) / denom;
+        if ((ua >= 0) && (ua <= 1)) {
+            var ub = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) / denom;
+            if ((ub >= 0) && (ub <= 1)) {
+                var x = x1 + (ua * (x2 - x1));
+                var y = y1 + (ua * (y2 - y1));
+                return { x: x, y: y, d: d };
+            }
+        }
+    }
+
+    return null;
+}
+
 // Builtin AI controller that can be overriden by user AI
+// From https://codeincomplete.com/articles/javascript-pong/part5/
 class AIController implements MoroboxAIGameSDK.IController {
     // Controller provided by moroboxai-player-sdk
     private _controller: MoroboxAIGameSDK.IController;
 
     // Inputs of the builtin AI
     private _inputs: Inputs = {};
+
+    // Predict where the ball will be
+    private _prediction?: {
+        dX: number;
+        dY: number;
+        y: number;
+        since: number;
+    };
+
+    // AI level = difficulty
+    private _level: number = AI_LEVEL_MEDIUM;
 
     get id(): number {
         return this._controller.id;
@@ -191,44 +291,134 @@ class AIController implements MoroboxAIGameSDK.IController {
         return this._inputs;
     }
 
-    tick(bar: Bar, ball: Ball) {
-        if (ball.y < bar.y - bar.height * BAR_AI_THRESHOLD) {
-            this._inputs.up = true;
-            this._inputs.down = false;
-        } else if (ball.y > bar.y + bar.height * BAR_AI_THRESHOLD) {
-            this._inputs.up = false;
-            this._inputs.down = true;
+    private _predict(bar: Bar, ball: Ball, delta: number): number | undefined {
+        if (this._prediction &&
+            ((this._prediction.dX * ball.direction.x) > 0) &&
+            ((this._prediction.dY * ball.direction.y) > 0) &&
+            (this._prediction.since < AI_LEVELS[this._level].reaction)) {
+            this._prediction.since += delta;
+            return undefined;
+        }
+
+        const pt = ballIntercept(
+            ball,
+            {left: bar.left, right: bar.right, top: -10000, bottom: 10000},
+            ball.direction.x * SCREEN_WIDTH,
+            ball.direction.y * SCREEN_WIDTH
+        );
+
+        if (pt) {
+            this._prediction = {
+                dX: ball.direction.x,
+                dY: ball.direction.y,
+                y: pt.y,
+                since: 0,
+            }
+
+            const closeness = (ball.direction.x < 0 ? ball.x - bar.right : bar.left - ball.x) / SCREEN_WIDTH;
+            const error = AI_LEVELS[this._level].error * closeness;
+            this._prediction.y = this._prediction.y + (((Math.random() * 2.0) - 1.0) * error);
         } else {
-            this._inputs.up = false;
-            this._inputs.down = false;
+            this._prediction = undefined;
+            return;
+        }
+    }
+
+    tick(bar: Bar, ball: Ball, delta: number) {
+        this._inputs.up = false;
+        this._inputs.down = false;
+
+        if ((ball.x < bar.x && ball.direction.x < 0) ||
+            (ball.x > bar.x && ball.direction.x > 0)) {
+            return;
+        }
+
+        this._predict(bar, ball, delta);
+
+        if (this._prediction) {
+            if (this._prediction.y < bar.y - bar.height * BAR_AI_THRESHOLD) {
+                this._inputs.up = true;
+                this._inputs.down = false;
+            } else if (this._prediction.y > bar.y + bar.height * BAR_AI_THRESHOLD) {
+                this._inputs.up = false;
+                this._inputs.down = true;
+            }
         }
     }
 }
 
 // Header for displaying player and AIs infos
+class PlayerPanel extends PIXI.Container {
+    private _isLeft: boolean;
+    private _controller?: MoroboxAIGameSDK.IController;
+    private _controllerText?: PIXI.BitmapText;
+    private _scoreText?: PIXI.BitmapText;
+    private _score: number = 0;
+
+    set controller(value: MoroboxAIGameSDK.IController) {
+        this._controller = value;
+        this._update();
+    }
+
+    set score(value: number) {
+        this._score = value;
+        this._update();
+    }
+
+    constructor(isLeft: boolean) {
+        super();
+
+        this._isLeft = isLeft;
+    }
+
+    public onFontLoaded() {
+        this._controllerText = new PIXI.BitmapText('', { fontName: FONT_NAME, align: 'left', tint: HEADER_TEXT_COLOR });
+        this._controllerText.position.set(1, 1);
+        this.addChild(this._controllerText);
+
+        this._scoreText = new PIXI.BitmapText('', { fontName: FONT_NAME, align: 'left', tint: HEADER_TEXT_COLOR });
+        this._scoreText.position.set(1, 1);
+        this.addChild(this._scoreText);
+
+        this._update();
+    }
+
+    private _update() {
+        if (this._controllerText) {
+            const value = this._controller ? this._controller.label.toUpperCase() : '';
+            this._controllerText.text = this._isLeft ? `P1:${value}` : `${value}:P2`;
+            this._controllerText.position.x = this._isLeft ? 1 : UI_SCREEN_WIDTH - this._controllerText.textWidth;
+        }
+
+        if (this._scoreText) {
+            this._scoreText.text = this._score.toString();
+            this._scoreText.position.x = (UI_SCREEN_WIDTH / 2.0) + (this._isLeft ? -this._scoreText.textWidth - 2 : 2);
+        }
+    }
+}
+
 class Header extends PIXI.Container {
     private _background: PIXI.Sprite;
 
-    // Text displayed for player 1 (left side)
-    private _p1Text?: PIXI.BitmapText;
+    // Widgets displaying players infos
+    private _playerPanels: PlayerPanel[];
 
-    // Text displayed for player 2 (right side)
-    private _p2Text?: PIXI.BitmapText;
+    private _separatorText?: PIXI.BitmapText;
 
-    // Player 1 controller (left side)
-    private _p1?: MoroboxAIGameSDK.IController;
-
-    // Player 2 controller (right side)
-    private _p2?: MoroboxAIGameSDK.IController;
-    
     public set p1(controller: MoroboxAIGameSDK.IController) {
-        this._p1 = controller;
-        this._updateP1();
+        this._playerPanels[0].controller = controller;
     }
 
     public set p2(controller: MoroboxAIGameSDK.IController) {
-        this._p2 = controller;
-        this._updateP2();
+        this._playerPanels[1].controller = controller;
+    }
+
+    public set p1Score(value: number) {
+        this._playerPanels[0].score = value;
+    }
+
+    public set p2Score(value: number) {
+        this._playerPanels[1].score = value;
     }
 
     constructor(width: number, height: number) {
@@ -237,36 +427,19 @@ class Header extends PIXI.Container {
         this._background = PIXI.Sprite.from(PIXI.Texture.WHITE);
         this._background.width = width;
         this._background.height = height;
-        this._background.tint = HEADER_COLOR;
-        this.addChild(this._background); 
+        this._background.tint = HEADER_BACKGROUND_COLOR;
+        this.addChild(this._background);
+
+        this._playerPanels = [new PlayerPanel(true), new PlayerPanel(false)];
+        this.addChild(...this._playerPanels);
     }
 
     public onFontLoaded() {
-        this._p1Text = new PIXI.BitmapText('', {fontName: FONT_NAME, align: 'left', tint: BAR_COLOR});
-        this._p1Text.position.set(1, 1);
-        this.addChild(this._p1Text);
-        
-        this._p2Text = new PIXI.BitmapText('', {fontName: FONT_NAME, align: 'left', tint: BAR_COLOR});
-        this._p2Text.position.set(1, 1);
-        this.addChild(this._p2Text);
+        this._playerPanels.forEach(_ => _.onFontLoaded());
 
-        this._updateP1();
-        this._updateP2();
-    }
-
-    private _updateP1() {
-        if (this._p1Text !== undefined) {
-            const value = this._p1 !== undefined ? this._p1.label.toUpperCase() : '';
-            this._p1Text.text = `P1:${value}`;
-        }
-    }
-
-    private _updateP2() {
-        if (this._p2Text !== undefined) {
-            const value = this._p2 !== undefined ? this._p2.label.toUpperCase() : '';
-            this._p2Text.text = `${value}:P2`;
-            this._p2Text.position.x = this._background.width - this._p2Text.textWidth;
-        }
+        this._separatorText = new PIXI.BitmapText('-', { fontName: FONT_NAME, align: 'left', tint: HEADER_TEXT_COLOR });
+        this._separatorText.position.set(UI_SCREEN_WIDTH / 2.0 - 2, 1);
+        this.addChild(this._separatorText);
     }
 }
 
@@ -280,8 +453,8 @@ class Footer extends PIXI.Container {
         this._background = PIXI.Sprite.from(PIXI.Texture.WHITE);
         this._background.width = width;
         this._background.height = height;
-        this._background.tint = HEADER_COLOR;
-        this.addChild(this._background); 
+        this._background.tint = HEADER_BACKGROUND_COLOR;
+        this.addChild(this._background);
     }
 }
 
@@ -293,7 +466,7 @@ class BackBuffer {
 
     constructor(width: number, height: number) {
         this.container = new PIXI.Container();
-        this.buffer = PIXI.RenderTexture.create({width, height});
+        this.buffer = PIXI.RenderTexture.create({ width, height });
         this.sprite = new PIXI.Sprite(this.buffer);
         this.sprite.pivot.set(0, 0);
         this.sprite.position.set(0, 0);
@@ -408,6 +581,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         // reset the game state
         this._reset();
+        this._update_score(0, 0);
 
         // register the tick function
         this._app.ticker.add((delta: number) => this._tick(delta));
@@ -432,13 +606,23 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._ball.position.set(HSCREEN_WIDTH, HSCREEN_HEIGHT);
 
         const angle = (BALL_ANGLES[Math.floor(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
-        this._ball.velocity.set(Math.cos(angle), Math.sin(angle));
+        this._ball.direction.set(Math.cos(angle), Math.sin(angle));
+        this._ball.speed = BALL_SPEED;
+    }
+
+    private _update_score(p1: number, p2: number) {
+        p1 = Math.min(p1, MAX_SCORE);
+        p2 = Math.min(p2, MAX_SCORE);
+        this._bars.left.score = p1;
+        this._bars.right.score = p2;
+        this._header.p1Score = p1;
+        this._header.p2Score = p2;
     }
 
     private _checkCollision(bar: Bar, ball: Ball) {
         // only check if the ball is moving toward the bar
-        if ((bar.x < ball.x && ball.velocity.x > 0) ||
-            (bar.x > ball.x && ball.velocity.x < 0)) {
+        if ((bar.x < ball.x && ball.direction.x > 0) ||
+            (bar.x > ball.x && ball.direction.x < 0)) {
             return;
         }
 
@@ -448,12 +632,13 @@ class PongGame implements MoroboxAIGameSDK.IGame {
             return;
         }
 
-        ball.velocity.x *= -1;
+        ball.direction.x *= -1;
+        ball.speed *= BALL_ACCELERATION;
     }
 
     private _tick(delta: number) {
         // tick the game elements
-        this._aiController.tick(this._bars.right, this._ball);
+        this._aiController.tick(this._bars.right, this._ball, delta);
         this._bars.left.tick(delta);
         this._bars.right.tick(delta);
         this._ball.tick(delta);
@@ -464,6 +649,11 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         // check game over
         if (this._ball.position.x < 0 || this._ball.position.x > SCREEN_WIDTH) {
+            if (this._ball.position.x < 0) {
+                this._update_score(this._bars.left.score, this._bars.right.score + 1);
+            } else {
+                this._update_score(this._bars.left.score + 1, this._bars.right.score);
+            }
             this._reset();
         }
 
