@@ -690,7 +690,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     }
 
     private _tick(delta: number) {
-        this._physics_accumulator += delta;
+        this._physics_accumulator += delta * this.speed;
         while (this._physics_accumulator > PHYSICS_TIMESTEP) {
             this._update(PHYSICS_TIMESTEP);
             this._physics_accumulator -= PHYSICS_TIMESTEP;
@@ -698,6 +698,9 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         this._render();
     }
+
+    // IGame interface
+    speed: number = 1;
 
     help(): string {
         throw new Error('Method not implemented.');
