@@ -496,6 +496,9 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     // The player provided by moroboxai-player-sdk
     private _player: MoroboxAIGameSDK.IPlayer;
 
+    // If the game has been attached and is playing
+    private _isPlaying: boolean = false;
+
     // Buffer where the game will be rendered
     private _gameBuffer: BackBuffer;
 
@@ -538,16 +541,15 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         // initialize PIXI application
         this._app = new PIXI.Application({
             backgroundColor: BACKGROUND_COLOR,
-            resolution: window.devicePixelRatio || 1
+            resolution: window.devicePixelRatio || 1,
+            width: player.width,
+            height: player.height
         });
 
         PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
         // attach PIXI view to root HTML element
-        player.root.appendChild(this._app.view);
-
-        // force resizing the root HTML element to game size
-        player.resize(UI_SCREEN_WIDTH * 4, UI_SCREEN_HEIGHT * 4);
+        this._player.root.appendChild(this._app.view);
 
         // buffer for rendering game elements
         this._gameBuffer = new BackBuffer(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -558,9 +560,6 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._uiBuffer.container.addChild(this._gameBuffer.sprite);
 
         this._app.stage.addChild(this._uiBuffer.sprite);
-
-        window.addEventListener('resize', () => this._resize(), false);
-        this._resize();
 
         // create procedural sprites for bars and ball
         this._playerController = player.controller(0)!;
@@ -586,30 +585,18 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this._footer.position.set(0, UI_SCREEN_HEIGHT - HEADER_HEIGHT);
         this._uiBuffer.container.addChild(this._footer);
 
-        const loader = new PIXI.Loader();
-        loader.add(this._player.gameServer.href(FONT_PATH))
-            .load((loader, resources) => {
-                this._header.onFontLoaded();
-            });
-
         // reset the game state
         this._reset();
         this._update_score(0, 0);
 
-        // register the tick function
-        this._app.ticker.add((delta: number) => this._tick(delta));
+        const loader = new PIXI.Loader();
+        loader.add(this._player.gameServer.href(FONT_PATH))
+            .load((loader, resources) => {
+                this._header.onFontLoaded();
 
-        // notify the SDK we are ready
-        player.ready();
-    }
-
-    // Scale the game view according to parent div
-    private _resize() {
-        const realWidth = this._player.root.clientWidth;
-        const realHeight = this._player.root.clientHeight;
-
-        this._app.renderer.resize(realWidth, realHeight);
-        this._uiBuffer.sprite.scale.set(realWidth / UI_SCREEN_WIDTH, realHeight / UI_SCREEN_HEIGHT);
+                // notify the SDK we are ready
+                player.ready();
+            });
     }
 
     // Reset game to initial state
@@ -707,7 +694,17 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     }
 
     play(): void {
-        console.log('play');
+        if (this._isPlaying) {
+            return;
+        }
+
+        this._isPlaying = true;
+
+        // force resizing the root HTML element to game size
+        this._player.resize(UI_SCREEN_WIDTH * 4, UI_SCREEN_HEIGHT * 4);
+
+        // register the tick function
+        this._app.ticker.add((delta: number) => this._tick(delta));
     }
 
     pause(): void {
@@ -716,6 +713,16 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
     stop(): void {
         console.log('stop');
+    }
+
+    resize(): void {
+        // Scale the game view according to parent div
+        const realWidth = this._player.width;
+        const realHeight = this._player.height;
+        console.log(`resize ${realWidth}x${realHeight}`);
+
+        this._app.renderer.resize(realWidth, realHeight);
+        this._uiBuffer.sprite.scale.set(realWidth / UI_SCREEN_WIDTH, realHeight / UI_SCREEN_HEIGHT);
     }
 }
 
