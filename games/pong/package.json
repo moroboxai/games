@@ -1,6 +1,6 @@
 {
   "name": "@moroboxai-games/pong",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "PongGame",
   "scripts": {
     "build": "gulp build",
@@ -21,8 +21,8 @@
   "devDependencies": {
     "concurrently": "^7.0.0",
     "gulp": "^4.0.2",
-    "moroboxai-game-sdk": "^0.1.0-alpha.10",
-    "moroboxai-player-web": "^0.1.0-alpha.5",
+    "moroboxai-game-sdk": "^0.1.0-alpha.13",
+    "moroboxai-player-web": "^0.1.0-alpha.8",
     "moroboxai-editor-web": "^0.1.0-alpha.1",
     "path": "^0.12.7",
     "pixi.js": "^5.3.3",

@@ -28,14 +28,16 @@ const webpackConfig = (prod) => ({
     },
 });
 
+gulp.task('prod', () => {
+	return gulp.src('./src/index.ts')
+    	.pipe(gulpWebpack(webpackConfig(true), webpack))
+        .pipe(gulp.dest('./'));
+});
+
 gulp.task('dev', () => {	
 	return gulp.src('./src/index.ts')
     	.pipe(gulpWebpack(webpackConfig(), webpack))
         .pipe(gulp.dest('./'));
 });
 
-gulp.task('build', () => {
-	return gulp.src('./src/index.ts')
-    	.pipe(gulpWebpack(webpackConfig(true), webpack))
-        .pipe(gulp.dest('./'));
-});
+gulp.task('build', gulp.series('dev', 'prod'));

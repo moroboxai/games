@@ -677,7 +677,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     }
 
     private _tick(delta: number) {
-        this._physics_accumulator += delta * this.speed;
+        this._physics_accumulator += delta * this._player.speed;
         while (this._physics_accumulator > PHYSICS_TIMESTEP) {
             this._update(PHYSICS_TIMESTEP);
             this._physics_accumulator -= PHYSICS_TIMESTEP;
@@ -700,8 +700,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
         this._isPlaying = true;
 
-        // force resizing the root HTML element to game size
-        this._player.resize(UI_SCREEN_WIDTH * 4, UI_SCREEN_HEIGHT * 4);
+        this.resize();
 
         // register the tick function
         this._app.ticker.add((delta: number) => this._tick(delta));
