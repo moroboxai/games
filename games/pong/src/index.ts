@@ -513,6 +513,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     private _ball: Ball;
     private _playerController: MoroboxAIGameSDK.IController;
     private _aiController: AIController;
+    private _ticker!: (deltaTime: number) => void;
 
     /**
      * Informations sent to AIs:
@@ -695,6 +696,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
 
     play(): void {
         if (this._isPlaying) {
+            this._app.ticker.add(this._ticker);
             return;
         }
 
@@ -703,15 +705,16 @@ class PongGame implements MoroboxAIGameSDK.IGame {
         this.resize();
 
         // register the tick function
-        this._app.ticker.add((delta: number) => this._tick(delta));
+        this._ticker = (delta: number) => this._tick(delta);
+        this._app.ticker.add(this._ticker);
     }
 
     pause(): void {
-        console.log('pause');
+        this._app.ticker.remove(this._ticker);
     }
 
     stop(): void {
-        console.log('stop');
+        this._app.destroy();
     }
 
     resize(): void {
