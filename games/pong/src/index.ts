@@ -714,7 +714,7 @@ class PongGame implements MoroboxAIGameSDK.IGame {
     }
 
     stop(): void {
-        this._app.destroy();
+        this._app.destroy(true, {children: true, texture: true, baseTexture: true});
     }
 
     resize(): void {
