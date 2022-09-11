@@ -4,6 +4,7 @@ unpack/
 lib/
 *.bat
 package-lock.json
+index.html
 
 # Logs
 logs
