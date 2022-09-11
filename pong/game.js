@@ -373,9 +373,9 @@ function reset() {
     ball.x = HSWIDTH;
     ball.y = HSHEIGHT;
 
-    const angle = (BALL_ANGLES[Math.floor(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
-    ball.direction.x = Math.cos(angle);
-    ball.direction.y = Math.sin(angle);
+    const angle = (BALL_ANGLES[floor(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
+    ball.direction.x = cos(angle);
+    ball.direction.y = sin(angle);
     ball.speed = BALL_SPEED;
 }
 
