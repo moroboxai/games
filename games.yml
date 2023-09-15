@@ -1,3 +1,15 @@
 games:
-- name: pong
-- name: towerdefense
+- id: sample
+  name: Sample
+  url: https://raw.githubusercontent.com/moroboxai/moroboxai-games/master/piximoroxel8ai-sample/sample/header.yml
+  agents:
+  - id: random
+    name: Random
+    url: https://raw.githubusercontent.com/moroboxai/moroboxai-games/master/piximoroxel8ai-sample/sample/agent.yml
+- id: pong
+  name: Pong
+  url: https://raw.githubusercontent.com/moroboxai/moroboxai-games/master/pong/header.yml
+  agents:
+  - id: random
+    name: Random
+    url: https://raw.githubusercontent.com/moroboxai/moroboxai-games/master/piximoroxel8ai-sample/sample/agent.yml
