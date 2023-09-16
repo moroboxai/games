@@ -1,50 +1,44 @@
 import * as MoroboxAIGameSDK from "moroboxai-game-sdk";
-// In the real world: import { IPixiMoroxel8AI } from 'piximoroxel8ai';
-import { IPixiMoroxel8AI } from '../lib';
+import { IPixiMoroxel8AI } from "piximoroxel8ai";
 
 // Instance of the VM
-var _vm: IPixiMoroxel8AI;
+declare const vm: IPixiMoroxel8AI;
 
-// Instance of pixi.js
-var _PIXI: typeof PIXI;
+// Instance of pixi.js stage
+declare const stage: PIXI.Container;
 
-var container: PIXI.Container;
 var bunnyTexture: PIXI.Texture;
-
-/**
- * Initializes the game.
- * @param {IPixiMoroxel8AI} vm - instance of the VM
- */
-export function init(vm: IPixiMoroxel8AI) {
-    console.log("init called", vm);
-    _vm = vm;
-    _PIXI = vm.PIXI;
-}
+var bunny: PIXI.Sprite;
 
 /**
  * Loads the game and its assets.
  */
-export function load(): Promise<void> {
+function load(): Promise<void> {
     console.log("load called");
     return new Promise<void>((resolve, reject) => {
         console.log("load assets");
         // use PIXI.Loader to load assets
-        const loader = new _PIXI.Loader();
+        const loader = new PIXI.Loader();
 
         // load bunny.png
-        loader.add("bunny", _vm.player.gameServer.href(`assets/bunny.png`));
+        loader.add("bunny", vm.player.gameServer.href(`assets/bunny.png`));
 
         // notify when done
         loader.onComplete.add(() => {
-            console.log('assets loaded');
+            console.log("assets loaded");
 
             // get bunny.png
             bunnyTexture = loader.resources.bunny.texture;
 
-            resolve()
+            // Create the bunny
+            bunny = new PIXI.Sprite(bunnyTexture);
+            bunny.anchor.set(0.5);
+            stage.addChild(bunny);
+
+            resolve();
         });
 
-        // start loading
+        // start loading assets
         loader.load();
     });
 }
@@ -52,58 +46,44 @@ export function load(): Promise<void> {
 /**
  * Resets the state of the game.
  */
-export function reset() {
-    if (container !== undefined) {
-        _vm.stage.removeChild(container);
-    }
-
-    // Create a new clean container
-    container = new _PIXI.Container();
-    _vm.stage.addChild(container);
-
-    // Create a 5x5 grid of bunnies
-    for (let i = 0; i < 25; i++) {
-        const bunny = new _PIXI.Sprite(bunnyTexture);
-        bunny.anchor.set(0.5);
-        bunny.x = (i % 5) * 40;
-        bunny.y = Math.floor(i / 5) * 40;
-        container.addChild(bunny);
-    }
-
-    // Move container to the center
-    container.x = _vm.SWIDTH / 2;
-    container.y = _vm.SHEIGHT / 2;
-
-    // Center bunny sprite in local container coordinates
-    container.pivot.x = container.width / 2;
-    container.pivot.y = container.height / 2;
-
+function reset() {
+    bunny.x = vm.SWIDTH / 2;
+    bunny.y = vm.SHEIGHT / 2;
 }
 
 /**
  * Ticks the game.
  * @param {number} delta - elapsed time
  */
-export function tick(inputs: Array<MoroboxAIGameSDK.IInputs>, delta: number) {
-    // Agent can rotate the bunnies left or right
+function tick(inputs: Array<MoroboxAIGameSDK.IInputs>, delta: number) {
+    let dX = 0,
+        dY = 0;
+
     if (inputs[0].left) {
-        container.angle -= 1 * delta;
+        dX = -1;
     } else if (inputs[0].right) {
-        container.angle += 1 * delta;
+        dX = 1;
     }
+
+    if (inputs[0].up) {
+        dY = -1;
+    } else if (inputs[0].down) {
+        dY = 1;
+    }
+
+    bunny.x += dX * delta;
+    bunny.y += dY * delta;
 }
 
 export interface IGameState {
     x: number;
     y: number;
-    angle: number;
 }
 
-export function getStateForAgent(): IGameState {
-    // Send the position and angle of the container to agent
+function getStateForAgent(): IGameState {
+    // Send the position to agent
     return {
-        x: container.x,
-        y: container.y,
-        angle: container.angle
+        x: bunny.x,
+        y: bunny.y
     };
 }
