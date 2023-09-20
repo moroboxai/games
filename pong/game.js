@@ -10,7 +10,7 @@ const COLOR_LIGHT = 0x8BAC0F;
 const COLOR_LIGHTER = 0x9BBC0F;
 
 // Define game constants here
-const LETTERBOX_HEIGHT = 16;
+const LETTERBOX_HEIGHT = 0;
 const HEADER_HEIGHT = 8;
 const HSWIDTH = SWIDTH / 2.0;
 const HSHEIGHT = SHEIGHT / 2.0;
