@@ -471,13 +471,14 @@ reset();
 function tick(deltaTime) {
     update(deltaTime);
     draw();
+}
 
-    // send the new game state to AIs
-    state({
+function getStateForAgent() {
+    return {
         bars: [
             bars.left.state,
             bars.right.state
         ],
         ball: ball.state
-    });
+    };
 }
