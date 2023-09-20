@@ -10,12 +10,11 @@ const COLOR_LIGHT = 0x8BAC0F;
 const COLOR_LIGHTER = 0x9BBC0F;
 
 // Define game constants here
-const LETTERBOX_HEIGHT = 16;
 const HEADER_HEIGHT = 8;
 const HSWIDTH = SWIDTH / 2.0;
 const HSHEIGHT = SHEIGHT / 2.0;
-const TOP_GAME_Y = HEADER_HEIGHT + LETTERBOX_HEIGHT;
-const BOTTOM_GAME_Y = SHEIGHT - HEADER_HEIGHT - LETTERBOX_HEIGHT;
+const TOP_GAME_Y = HEADER_HEIGHT;
+const BOTTOM_GAME_Y = SHEIGHT - HEADER_HEIGHT;
 const BAR_HEIGHT = 12;
 const BAR_WIDTH = 4;
 const BAR_SPEED = 1;
@@ -434,10 +433,10 @@ function drawPlayerUI(controller) {
     const label = controller.label.toUpperCase()
 
     falign(isLeft ? 0 : 1, 0);
-    fdraw(FONT, isLeft ? `P1:${label}` : `${label}:P2`, isLeft ? 2 : SWIDTH - 1, 2 + LETTERBOX_HEIGHT);
+    fdraw(FONT, isLeft ? `P1:${label}` : `${label}:P2`, isLeft ? 2 : SWIDTH - 1, 2);
 
     falign(isLeft ? 1 : 0, 0);
-    fdraw(FONT, controller.score.toString(), HSWIDTH + (isLeft ? - 2 : 2), 2 + LETTERBOX_HEIGHT);
+    fdraw(FONT, controller.score.toString(), HSWIDTH + (isLeft ? - 2 : 2), 2);
 }
 
 function draw() {
@@ -449,25 +448,18 @@ function draw() {
     bars.right.draw();
     ball.draw();
 
-    // Draw letterboxes
-    sclear();
-    sscale(SWIDTH / 8, LETTERBOX_HEIGHT / 8);
-    stile(TILEMAP, 2, 0, 1, 1);
-    sdraw(0, 0);
-    sdraw(0, SHEIGHT - LETTERBOX_HEIGHT);
-
     // Draw UI top and bottom backgrounds
     sclear();
     sscale(SWIDTH / 8, HEADER_HEIGHT / 8);
     stile(TILEMAP, 2, 1, 1, 1);
-    sdraw(0, LETTERBOX_HEIGHT);
-    sdraw(0, SHEIGHT - LETTERBOX_HEIGHT - HEADER_HEIGHT);
+    sdraw(0, 0);
+    sdraw(0, SHEIGHT - HEADER_HEIGHT);
 
     // Draw score separator
     fclear();
     fcolor(COLOR_MEDIUM);
     falign(0.5, 0);
-    fdraw(FONT, '-', HSWIDTH, 2 + LETTERBOX_HEIGHT);
+    fdraw(FONT, '-', HSWIDTH, 2);
 
     // Draw players infos
     drawPlayerUI(playerController);
