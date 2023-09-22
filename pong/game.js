@@ -109,7 +109,6 @@ class Bar extends Entity {
     // Informations sent to AIs
     get state() {
         return {
-            id: this._controller.id,
             x: this.x,
             y: this.y
         };
