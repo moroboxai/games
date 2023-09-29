@@ -21,7 +21,7 @@ export interface IGridOptions {
     style: IGridStyle;
 }
 
-export default class Grid extends PIXI.Sprite {
+export default class Grid extends PIXI.Container {
     private _style: IGridStyle;
     private _size: number;
     private _startTiles: number;
@@ -34,14 +34,14 @@ export default class Grid extends PIXI.Sprite {
         this._size = options.size;
         this._startTiles = options.startTiles;
 
+        // Create the background
+        const background = new PIXI.Sprite(options.style.backgroundTexture);
         const gutterSize =
             options.style.marginSize * 2 +
             options.style.separatorSize * (options.size - 1);
-        this.width = gutterSize + options.style.tileSize * options.size;
-        this.height = this.width;
-
-        // Set background texture
-        this.texture = options.style.backgroundTexture;
+        background.width = gutterSize + options.style.tileSize * options.size;
+        background.height = background.width;
+        this.addChild(background);
 
         // Create the tiles
         this._blockPool = new Array<Block>();

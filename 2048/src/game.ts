@@ -148,7 +148,7 @@ class GameManager extends PIXI.Container {
 /**
  * Loads the game and its assets.
  */
-function load(): Promise<void> {
+export function load(): Promise<void> {
     console.log("load called");
     return new Promise<void>((resolve, reject) => {
         console.log("load assets");
@@ -167,36 +167,28 @@ function load(): Promise<void> {
 
             // generate textures used by the game
             tileset = loader.resources.tileset.texture;
-            headerBackgroundTexture = new PIXI.Texture(
+            HEADER_STYLE.backgroundTexture = new PIXI.Texture(
                 tileset.baseTexture,
                 new PIXI.Rectangle(0, 0, 16, 16)
             );
-            backgroundTexture = new PIXI.Texture(
+            GRID_STYLE.backgroundTexture = new PIXI.Texture(
                 tileset.baseTexture,
                 new PIXI.Rectangle(0, 0, 16, 16)
             );
             const tileSize = GRID_STYLE.tileSize;
-            emptyTileTexture = new PIXI.Texture(
+            GRID_STYLE.emptyTileTexture = new PIXI.Texture(
                 tileset.baseTexture,
                 new PIXI.Rectangle(19, 3, tileSize, tileSize)
             );
-            blockTexture = {};
-            for (let i = 0; i < 16; ++i) {
-                blockTexture[Math.pow(2, i + 1)] = new PIXI.Texture(
-                    tileset.baseTexture,
-                    new PIXI.Rectangle(
-                        51 + i * (tileSize + 6),
-                        3,
-                        tileSize,
-                        tileSize
-                    )
-                );
-            }
+            GRID_STYLE.blockStyle.backgroundTexture = new PIXI.Texture(
+                tileset.baseTexture,
+                new PIXI.Rectangle(19, 3, tileSize, tileSize)
+            );
 
             // Create the manager instance
             gameManager = new GameManager();
+            gameManager.reset();
             stage.addChild(gameManager);
-            reset();
 
             resolve();
         });
@@ -207,17 +199,10 @@ function load(): Promise<void> {
 }
 
 /**
- * Resets the state of the game.
- */
-function reset() {
-    gameManager.reset();
-}
-
-/**
  * Ticks the game.
  * @param {number} delta - elapsed time
  */
-function tick(inputs: Array<MoroboxAIGameSDK.IInputs>, delta: number) {
+export function tick(inputs: Array<MoroboxAIGameSDK.IInputs>, delta: number) {
     if (inputs[0].left) {
         gameManager.move(EDirection.LEFT);
     } else if (inputs[0].right) {
@@ -231,14 +216,14 @@ function tick(inputs: Array<MoroboxAIGameSDK.IInputs>, delta: number) {
     gameManager.tick(delta);
 }
 
-function loadState(state: IGameState) {
+export function loadState(state: IGameState) {
     gameManager.loadState(state);
 }
 
-function saveState(): IGameState {
+export function saveState(): IGameState {
     return gameManager.saveState();
 }
 
-function getStateForAgent(): IGameState {
+export function getStateForAgent(): IGameState {
     return saveState();
 }
