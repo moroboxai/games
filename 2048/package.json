@@ -1,0 +1,29 @@
+{
+  "name": "2048",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build:game": "vite build --config vite.config.js",
+    "build:agent": "gulp build-agent",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "eslint": "8.50.0",
+    "eslint-config-next": "13.5.3",
+    "moroboxai-editor-web": "0.1.1-alpha.9",
+    "moroboxai-game-sdk": "^0.1.0-alpha.36",
+    "moroboxai-player-web": "^0.1.0-alpha.36",
+    "piximoroxel8ai": "^0.1.0-alpha.22",
+    "prettier": "3.0.3",
+    "typescript": "5.2.2",
+    "vite": "4.4.9"
+  },
+  "devDependencies": {
+    "gulp": "^4.0.2",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "ts-loader": "^9.4.4",
+    "webpack-stream": "^7.0.0"
+  }
+}
