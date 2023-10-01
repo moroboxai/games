@@ -21,27 +21,35 @@ export interface IBlockOptions {
     style: IBlockStyle;
 }
 
+export enum EBlockMode {
+    IDLE = 0,
+    MOVE,
+    MOVE_AND_MERGE,
+    MERGE
+}
+
 export default class Block extends PIXI.Sprite {
     private _style: IBlockStyle;
     private _text: PIXI.BitmapText;
     private _value: number;
-    targetPosition: Position;
+    mode: EBlockMode = EBlockMode.IDLE;
 
     constructor(options: IBlockOptions) {
         super();
         this._style = options.style;
         this.width = options.size;
         this.height = options.size;
+        this.anchor.set(0.5, 0.5);
 
         // Set background texture
         this.texture = options.style.backgroundTexture;
 
         // Create the label
         this._text = new PIXI.BitmapText("", {
-            fontName: "MoroboxAIRetro"
+            fontName: options.style.fontName
         });
         this._text.anchor = new PIXI.Point(0.5, 0.5);
-        this._text.position.set(this.width / 2, this.height / 2);
+        this._text.position.set(0, 0);
         this.addChild(this._text);
 
         this.value = 2;

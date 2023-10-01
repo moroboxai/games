@@ -1,4 +1,4 @@
-import Block, { IBlockStyle } from "./block";
+import Block from "./block";
 import { Tile, Position } from "./utils";
 
 export interface ITraversals {
@@ -9,7 +9,6 @@ export interface ITraversals {
 export interface IGridStyle {
     backgroundTexture: PIXI.Texture;
     emptyTileTexture: PIXI.Texture;
-    blockStyle: IBlockStyle;
     marginSize: number;
     separatorSize: number;
     tileSize: number;
@@ -17,22 +16,18 @@ export interface IGridStyle {
 
 export interface IGridOptions {
     size: number;
-    startTiles: number;
     style: IGridStyle;
 }
 
 export default class Grid extends PIXI.Container {
     private _style: IGridStyle;
     private _size: number;
-    private _startTiles: number;
-    private _blockPool: Array<Block>;
     private _tiles: Block[][];
 
     constructor(options: IGridOptions) {
         super();
         this._style = options.style;
         this._size = options.size;
-        this._startTiles = options.startTiles;
 
         // Create the background
         const background = new PIXI.Sprite(options.style.backgroundTexture);
@@ -44,40 +39,25 @@ export default class Grid extends PIXI.Container {
         this.addChild(background);
 
         // Create the tiles
-        this._blockPool = new Array<Block>();
         this._tiles = new Array<Array<Block | null>>();
         for (let i = 0; i < this._size; i++) {
             let row: Array<Block | null> = (this._tiles[i] = []);
             for (let j = 0; j < this._size; j++) {
-                // Add a block to the pool
-                const tile = new Block({
-                    size: options.style.tileSize,
-                    style: options.style.blockStyle
-                });
-                this._blockPool.push(tile);
                 row.push(null);
 
                 // Add a sprite for the tile
                 const position = this.tilePosition({ i, j });
                 const sprite = new PIXI.Sprite(options.style.emptyTileTexture);
                 sprite.alpha = 0.25;
+                sprite.anchor.set(0.5);
                 sprite.position.set(position.x, position.y);
                 this.addChild(sprite);
             }
         }
     }
 
-    reset() {
-        this.clear();
-        this.addStartBlocks();
-    }
-
-    clear() {
-        for (let i = 0; i < this._size; ++i) {
-            for (let j = 0; j < this._size; ++j) {
-                this.removeBlock({ i, j });
-            }
-        }
+    get size(): number {
+        return this._size;
     }
 
     eachTile(callback: (i: number, j: number, block: Block | null) => void) {
@@ -163,7 +143,7 @@ export default class Grid extends PIXI.Container {
         );
     }
 
-    tileContent(tile: Tile): Block | null {
+    tileContent(tile: Tile): Block {
         if (this.withinBounds(tile)) {
             return this._tiles[tile.i][tile.j];
         } else {
@@ -179,49 +159,38 @@ export default class Grid extends PIXI.Container {
         return !this.tileOccupied(tile);
     }
 
-    addStartBlocks() {
-        for (let i = 0; i < this._startTiles; ++i) {
-            this.addRandomBlock();
-        }
-    }
-
-    addRandomBlock() {
-        if (!this.tilesAvailable) {
-            return;
-        }
-
-        var value = Math.random() < 0.9 ? 2 : 4;
-        this.insertBlock(this.randomAvailableTile(), value);
-    }
-
-    insertBlock(tile: Tile, value: number) {
-        const block = this._blockPool.pop();
-        if (block !== undefined) {
-            this.addChild(block);
-            const position = this.tilePosition(tile);
-            block.position.set(position.x, position.y);
-            block.value = value;
-            this._tiles[tile.i][tile.j] = block;
-        }
-    }
-
-    removeBlock(tile: Tile) {
-        if (this._tiles[tile.i][tile.j] !== null) {
-            const block = this._tiles[tile.i][tile.j];
-            this.removeChild(block);
-            this._blockPool.push(block);
-            this._tiles[tile.i][tile.j] = null;
-        }
+    setBlock(tile: Tile, block: Block) {
+        this._tiles[tile.i][tile.j] = block;
     }
 
     tilePosition(tile: Tile): Position {
         return {
             x:
                 this._style.marginSize +
-                (this._style.tileSize + this._style.separatorSize) * tile.i,
+                (this._style.tileSize + this._style.separatorSize) * tile.i +
+                this._style.tileSize / 2,
             y:
                 this._style.marginSize +
-                (this._style.tileSize + this._style.separatorSize) * tile.j
+                (this._style.tileSize + this._style.separatorSize) * tile.j +
+                this._style.tileSize / 2
+        };
+    }
+
+    findFarthestPosition(
+        tile: Tile,
+        vector: Position
+    ): { farthest: Tile; next: Tile } {
+        let previous!: Tile;
+
+        // Progress towards the vector direction until an obstacle is found
+        do {
+            previous = tile;
+            tile = { i: previous.i + vector.x, j: previous.j + vector.y };
+        } while (this.withinBounds(tile) && this.tileAvailable(tile));
+
+        return {
+            farthest: previous,
+            next: tile // Used to check if a merge is required
         };
     }
 
@@ -240,33 +209,9 @@ export default class Grid extends PIXI.Container {
         return traversals;
     }
 
-    loadState(state: number[][]) {
-        this.clear();
-        state.map((line, i) =>
-            line.map((value, j) => {
-                if (value !== 0) {
-                    this.insertBlock({ i, j }, value);
-                }
-            })
-        );
-    }
-
     saveState(): number[][] {
         return this._tiles.map((line) =>
             line.map((block) => (block !== null ? block.value : 0))
         );
-    }
-
-    tick(delta: number) {
-        this._blockPool.forEach((block) => {
-            if (block.targetPosition === undefined) {
-                return;
-            }
-
-            this.position.set(
-                (block.targetPosition.x - this.position.x) * delta,
-                (block.targetPosition.y - this.position.y) * delta
-            );
-        });
     }
 }
