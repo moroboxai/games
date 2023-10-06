@@ -1,5 +1,3 @@
-import { Position, Tile } from "./utils";
-
 export interface IBlockColors {
     textColor: number;
     backgroundColor: number;
@@ -7,11 +5,15 @@ export interface IBlockColors {
 
 export interface IBlockStyle {
     backgroundTexture: PIXI.Texture;
-    fontName: string;
+    smallFontName: string;
     smallFontSize: number;
+    mediumFontName: string;
     mediumFontSize: number;
+    largeFontName: string;
     largeFontSize: number;
+    xLargeFontName: string;
     xLargeFontSize: number;
+    xxLargeFontName: string;
     xxLargeFontSize: number;
     colors: { [key: number]: IBlockColors };
 }
@@ -46,7 +48,7 @@ export default class Block extends PIXI.Sprite {
 
         // Create the label
         this._text = new PIXI.BitmapText("", {
-            fontName: options.style.fontName
+            fontName: options.style.smallFontName
         });
         this._text.anchor = new PIXI.Point(0.5, 0.5);
         this._text.position.set(0, 0);
@@ -64,17 +66,25 @@ export default class Block extends PIXI.Sprite {
         const text = val.toString();
         const len = text.length;
         this._text.text = text;
+        if (this._style.colors[val].textColor === undefined) {
+            console.log("undef ", val);
+        }
         this._text.tint = this._style.colors[val].textColor;
         this.tint = this._style.colors[val].backgroundColor;
         if (len < 2) {
+            this._text.fontName = this._style.smallFontName;
             this._text.fontSize = this._style.smallFontSize;
         } else if (len < 3) {
+            this._text.fontName = this._style.mediumFontName;
             this._text.fontSize = this._style.mediumFontSize;
         } else if (len < 4) {
+            this._text.fontName = this._style.largeFontName;
             this._text.fontSize = this._style.largeFontSize;
         } else if (len < 5) {
+            this._text.fontName = this._style.xLargeFontName;
             this._text.fontSize = this._style.xLargeFontSize;
         } else {
+            this._text.fontName = this._style.xxLargeFontName;
             this._text.fontSize = this._style.xxLargeFontSize;
         }
     }

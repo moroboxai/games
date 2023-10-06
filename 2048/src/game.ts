@@ -1,5 +1,5 @@
-import * as MoroboxAIGameSDK from "moroboxai-game-sdk";
-import { IPixiMoroxel8AI } from "piximoroxel8ai";
+import type { Inputs } from "moroboxai-game-sdk";
+import type { IVM } from "piximoroxel8ai";
 import Grid, { IGridStyle } from "./grid";
 import Header, { IHeaderStyle } from "./header";
 import { EDirection, getVector, Tile } from "./utils";
@@ -7,10 +7,13 @@ import Block, { EBlockMode, IBlockStyle } from "./block";
 import { ITween, MergeBlockTween, MoveBlockTween } from "./tween";
 
 // Instance of the VM
-declare const vm: IPixiMoroxel8AI;
+declare const vm: IVM;
 
 // Instance of pixi.js stage
 declare const stage: PIXI.Container;
+
+// Activate debug mode
+const DEBUG: boolean = false;
 
 // Width and height of the grid (number of tiles)
 const GRID_SIZE: number = 4;
@@ -24,23 +27,24 @@ const MARGIN_SIZE: number = 6;
 // Height of the header
 const HEADER_HEIGHT: number = 16 + MARGIN_SIZE;
 
-// Default font
-const FONT_NAME = "MoroboxAIRetro";
-
 const HEADER_STYLE: IHeaderStyle = {
     backgroundTexture,
-    fontName: FONT_NAME,
-    fontSize: 16
+    fontName: "2048Big",
+    fontSize: 14
 };
 
 const BLOCK_STYLE: IBlockStyle = {
     backgroundTexture,
-    fontName: FONT_NAME,
-    smallFontSize: 16,
-    mediumFontSize: 12,
-    largeFontSize: 8,
-    xLargeFontSize: 6,
-    xxLargeFontSize: 4,
+    smallFontName: "2048Big",
+    smallFontSize: 14,
+    mediumFontName: "2048Small",
+    mediumFontSize: 10,
+    largeFontName: "2048Big",
+    largeFontSize: 7,
+    xLargeFontName: "2048Small",
+    xLargeFontSize: 5,
+    xxLargeFontName: "2048Small",
+    xxLargeFontSize: 5,
     colors: Object.assign(
         {},
         ...[
@@ -61,7 +65,7 @@ const BLOCK_STYLE: IBlockStyle = {
             [32768, 0, 0xffffff]
         ].map((options) => ({
             [options[0]]: {
-                color: options[1],
+                textColor: options[1],
                 backgroundColor: options[2]
             }
         }))
@@ -165,7 +169,25 @@ class GameManager extends PIXI.Container {
         this._blockPool.push(block);
     }
 
+    addDebugBlocks() {
+        let value = 2;
+        for (let i = 0; i < this.grid.size; ++i) {
+            for (let j = 0; j < this.grid.size; ++j) {
+                this.insertBlock({ i, j }, value);
+                value *= 2;
+                if (value > 32768) {
+                    return;
+                }
+            }
+        }
+    }
+
     addStartBlocks() {
+        if (DEBUG) {
+            this.addDebugBlocks();
+            return;
+        }
+
         for (let i = 0; i < this._startTiles; ++i) {
             this.addRandomBlock();
         }
@@ -336,23 +358,24 @@ class GameManager extends PIXI.Container {
  */
 export function load(): Promise<void> {
     console.log("load called");
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
         console.log("load assets");
-        // use PIXI.Loader to load assets
+        // load the fonts
         const loader = new PIXI.Loader();
 
-        // load the font
         loader.add(vm.player.gameServer.href(`assets/MoroboxAIRetro.fnt`));
+        loader.add(vm.player.gameServer.href(`assets/2048Small.fnt`));
+        loader.add(vm.player.gameServer.href(`assets/2048Big.fnt`));
 
         // load the tileset
         loader.add("tileset", vm.player.gameServer.href(`assets/tileset.png`));
 
-        // notify when done
         loader.onComplete.add(() => {
             console.log("assets loaded");
 
+            const tileset = loader.resources.tileset.texture;
+
             // generate textures used by the game
-            tileset = loader.resources.tileset.texture;
             HEADER_STYLE.backgroundTexture = new PIXI.Texture(
                 tileset.baseTexture,
                 new PIXI.Rectangle(0, 0, 16, 16)
@@ -368,7 +391,7 @@ export function load(): Promise<void> {
             );
             BLOCK_STYLE.backgroundTexture = new PIXI.Texture(
                 tileset.baseTexture,
-                new PIXI.Rectangle(19, 3, tileSize, tileSize)
+                new PIXI.Rectangle(51, 3, tileSize, tileSize)
             );
 
             // Create the manager instance
@@ -379,7 +402,6 @@ export function load(): Promise<void> {
             resolve();
         });
 
-        // start loading assets
         loader.load();
     });
 }
@@ -388,7 +410,7 @@ export function load(): Promise<void> {
  * Ticks the game.
  * @param {number} delta - elapsed time
  */
-export function tick(inputs: Array<MoroboxAIGameSDK.IInputs>, delta: number) {
+export function tick(inputs: Array<Inputs>, delta: number) {
     if (inputs[0].left) {
         gameManager.move(EDirection.LEFT);
     } else if (inputs[0].right) {

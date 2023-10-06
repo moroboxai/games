@@ -48,7 +48,6 @@ export default class Grid extends PIXI.Container {
                 // Add a sprite for the tile
                 const position = this.tilePosition({ i, j });
                 const sprite = new PIXI.Sprite(options.style.emptyTileTexture);
-                sprite.alpha = 0.25;
                 sprite.anchor.set(0.5);
                 sprite.position.set(position.x, position.y);
                 this.addChild(sprite);

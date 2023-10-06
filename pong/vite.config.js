@@ -18,14 +18,6 @@ export default defineConfig({
                         return `game.js`;
                 }
             }
-        },
-        rollupOptions: {
-            external: ["pixi.js"],
-            output: {
-                globals: {
-                    "pixi.js": "PIXI"
-                }
-            }
         }
     }
 });

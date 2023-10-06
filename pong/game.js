@@ -1,483 +1,61 @@
-/**
- * Sample of a Pong game for Moroxel8AI.
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
  */
-
-// Colors from palette.png
-const COLOR_BG = 0xCADC9F;
-const COLOR_DARK = 0x0F380F;
-const COLOR_MEDIUM = 0x306230;
-const COLOR_LIGHT = 0x8BAC0F;
-const COLOR_LIGHTER = 0x9BBC0F;
-
-// Define game constants here
-const HEADER_HEIGHT = 8;
-const HSWIDTH = SWIDTH / 2.0;
-const HSHEIGHT = SHEIGHT / 2.0;
-const TOP_GAME_Y = HEADER_HEIGHT;
-const BOTTOM_GAME_Y = SHEIGHT - HEADER_HEIGHT;
-const BAR_HEIGHT = 12;
-const BAR_WIDTH = 4;
-const BAR_SPEED = 1;
-const BAR_X_OFFSET = 0.1;
-const BAR_AI_THRESHOLD = 0.25;
-const BALL_SIZE = 2;
-const BALL_ANGLES = [45, -45, 135, 225];
-const BALL_SPEED = 1.0;
-const BALL_ACCELERATION = 1.05;
-const MAX_SCORE = 99;
-const TILEMAP = tmap('tilemap');
-const FONT = fnt('MoroboxAIRetro');
-
-const AI_LEVELS = [
-    { reaction: 0.2, error: 40 }, // 0:  ai is losing by 8
-    { reaction: 0.3, error: 50 }, // 1:  ai is losing by 7
-    { reaction: 0.4, error: 60 }, // 2:  ai is losing by 6
-    { reaction: 0.5, error: 70 }, // 3:  ai is losing by 5
-    { reaction: 0.6, error: 80 }, // 4:  ai is losing by 4
-    { reaction: 0.7, error: 90 }, // 5:  ai is losing by 3
-    { reaction: 0.8, error: 100 }, // 6:  ai is losing by 2
-    { reaction: 0.9, error: 110 }, // 7:  ai is losing by 1
-    { reaction: 1.0, error: 120 }, // 8:  tie
-    { reaction: 1.1, error: 130 }, // 9:  ai is winning by 1
-    { reaction: 1.2, error: 140 }, // 10: ai is winning by 2
-    { reaction: 1.3, error: 150 }, // 11: ai is winning by 3
-    { reaction: 1.4, error: 160 }, // 12: ai is winning by 4
-    { reaction: 1.5, error: 170 }, // 13: ai is winning by 5
-    { reaction: 1.6, error: 180 }, // 14: ai is winning by 6
-    { reaction: 1.7, error: 190 }, // 15: ai is winning by 7
-    { reaction: 1.8, error: 200 }  // 16: ai is winning by 8
-];
-const AI_LEVEL_MEDIUM = 8;
-
-// Base class for the bars and the ball
-class Entity {
-    constructor(width, height) {
-        this.x = 0;
-        this.y = 0;
-        this.width = width;
-        this.height = height;
-    }
-
-    get hwidth() {
-        return this.width / 2.0;
-    }
-
-    get hheight() {
-        return this.height / 2.0;
-    }
-
-    get left() {
-        return this.x - this.hwidth;
-    }
-
-    get right() {
-        return this.x + this.hwidth;
-    }
-
-    get top() {
-        return this.y - this.hheight;
-    }
-
-    get bottom() {
-        return this.y + this.hheight;
-    }
-
-    // Get the state of this entity as a JSON dict
-    state() {
-        throw new Error("state must be implemented");
-    }
-
-    // Update the physics
-    update(deltaTime) {
-        throw new Error("update must be implemented");
-    }
-
-    // Draw the sprite
-    draw() {
-        throw new Error("draw must be implemented");
-    }
-}
-
-// Class for the player and AI bars
-class Bar extends Entity {
-    constructor(controller, width, height) {
-        super(width, height);
-
-        this._controller = controller;
-    }
-
-    // Informations sent to AIs
-    get state() {
-        return {
-            x: this.x,
-            y: this.y
-        };
-    }
-
-    // Update bar position and check collisions with screen bounds
-    update(delta) {
-        const inputs = this._controller.inputs();
-
-        if (inputs.up) {
-            this.y -= BAR_SPEED * delta;
-        } else if (inputs.down) {
-            this.y += BAR_SPEED * delta;
-        }
-
-        if (this.y < TOP_GAME_Y + this.hheight) {
-            this.y = TOP_GAME_Y + this.hheight;
-        } else if (this.y > BOTTOM_GAME_Y - this.hheight) {
-            this.y = BOTTOM_GAME_Y - this.hheight;
-        }
-    }
-
-    draw() {
-        sclear();
-        stile(TILEMAP, 0, 0, 1, 2); 
-        sorigin(4, 8);
-        sdraw(this.x, this.y);
-    }
-}
-
-// Class for the ball
-class Ball extends Entity {
-    constructor(size) {
-        super(size, size);
-
-        this.direction = {x: 0, y: 0};
-        this.speed = 0;
-    }
-
-    // Informations sent to AIs
-    get state() {
-        return {
-            x: this.x,
-            y: this.y
-        };
-    }
-
-    get radius() {
-        return this.hwidth;
-    }
-
-    // Update ball position and check collisions with screen bounds
-    update(delta) {
-        this.x += this.direction.x * this.speed * delta;
-        this.y += this.direction.y * this.speed * delta;
-
-        if (this.y < TOP_GAME_Y + this.hheight) {
-            this.y = TOP_GAME_Y + this.hheight;
-            this.direction.y *= -1;
-        } else if (this.y > BOTTOM_GAME_Y - this.hheight) {
-            this.y = BOTTOM_GAME_Y - this.hheight;
-            this.direction.y *= -1;
-        }
-    }
-
-    draw() {
-        sclear();
-        stile(TILEMAP, 1, 0, 1, 1); 
-        sorigin(4, 4);
-        sdraw(this.x, this.y);
-    }
-}
-
-// Collision detection https://codeincomplete.com/articles/javascript-pong/part4/
-function ballIntercept(ball, rect, nx, ny) {
-    let pt;
-    if (nx < 0) {
-        pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
-            rect.right + ball.radius,
-            rect.top - ball.radius,
-            rect.right + ball.radius,
-            rect.bottom + ball.radius,
-            "right");
-    } else if (nx > 0) {
-        pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
-            rect.left - ball.radius,
-            rect.top - ball.radius,
-            rect.left - ball.radius,
-            rect.bottom + ball.radius,
-            "left");
-    }
-    if (!pt) {
-        if (ny < 0) {
-            pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
-                rect.left - ball.radius,
-                rect.bottom + ball.radius,
-                rect.right + ball.radius,
-                rect.bottom + ball.radius,
-                "bottom");
-        }
-        if (ny > 0) {
-            pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny,
-                rect.left - ball.radius,
-                rect.top - ball.radius,
-                rect.right + ball.radius,
-                rect.top - ball.radius,
-                "top");
-        }
-    }
-
-    return pt;
-}
-
-function intercept(x1, y1, x2, y2, x3, y3, x4, y4, d) {
-    var denom = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
-    if (denom != 0) {
-        var ua = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) / denom;
-        if ((ua >= 0) && (ua <= 1)) {
-            var ub = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) / denom;
-            if ((ub >= 0) && (ub <= 1)) {
-                var x = x1 + (ua * (x2 - x1));
-                var y = y1 + (ua * (y2 - y1));
-                return { x: x, y: y, d: d };
-            }
-        }
-    }
-
-    return null;
-}
-
-class PlayerController {
-    constructor(pid) {
-        this._pid = pid;
-        this.score = 0;
-    }
-
-    get pid() {
-        return this._pid;
-    }
-
-    get label() {
-        return 'human';
-    }
-
-    sendState(val) {
-        state(this._pid, val);
-    }
-
-    inputs() {
-        return {
-            left: btn(this._pid, BLEFT),
-            right: btn(this._pid, BRIGHT),
-            up: btn(this._pid, BUP),
-            down: btn(this._pid, BDOWN),
-        }
-    }
-}
-
-// Builtin AI controller that can be overriden by user AI
-// From https://codeincomplete.com/articles/javascript-pong/part5/
-class AIController extends PlayerController {
-    constructor(pid) {
-        super(pid);
-        // Inputs of the builtin AI
-        this._inputs = {};
-        this._prediction = undefined;
-        // AI level = difficulty
-        this._level = AI_LEVEL_MEDIUM;
-    }
-
-    get label() {
-        return 'ai';
-    }
-
-    sendState(val) {
-        state(this._pid, val);
-    }
-
-    inputs() {
-        // override with user AI
-        if (this.isBound) {
-            return super.inputs();
-        }
-
-        return this._inputs;
-    }
-
-    _predict(bar, ball, delta) {
-        if (this._prediction &&
-            ((this._prediction.dX * ball.direction.x) > 0) &&
-            ((this._prediction.dY * ball.direction.y) > 0) &&
-            (this._prediction.since < AI_LEVELS[this._level].reaction)) {
-            this._prediction.since += delta;
-            return undefined;
-        }
-
-        const pt = ballIntercept(
-            ball,
-            {left: bar.left, right: bar.right, top: -10000, bottom: 10000},
-            ball.direction.x * SWIDTH,
-            ball.direction.y * SWIDTH
-        );
-
-        if (pt) {
-            this._prediction = {
-                dX: ball.direction.x,
-                dY: ball.direction.y,
-                y: pt.y,
-                since: 0,
-            }
-
-            const closeness = (ball.direction.x < 0 ? ball.x - bar.right : bar.left - ball.x) / SWIDTH;
-            const error = AI_LEVELS[this._level].error * closeness;
-            this._prediction.y = this._prediction.y + (((Math.random() * 2.0) - 1.0) * error);
-        } else {
-            this._prediction = undefined;
-            return;
-        }
-    }
-
-    update(bar, ball, delta) {
-        this._inputs.up = false;
-        this._inputs.down = false;
-
-        if ((ball.x < bar.x && ball.direction.x < 0) ||
-            (ball.x > bar.x && ball.direction.x > 0)) {
-            return;
-        }
-
-        this._predict(bar, ball, delta);
-
-        if (this._prediction) {
-            if (this._prediction.y < bar.y - bar.height * BAR_AI_THRESHOLD) {
-                this._inputs.up = true;
-                this._inputs.down = false;
-            } else if (this._prediction.y > bar.y + bar.height * BAR_AI_THRESHOLD) {
-                this._inputs.up = false;
-                this._inputs.down = true;
-            }
-        }
-    }
-}
-
-const playerController = new PlayerController(P1);
-const aiController = new AIController(P2);
-
-const bars = {
-    left: new Bar(playerController, BAR_WIDTH, BAR_HEIGHT),
-    right: new Bar(aiController, BAR_WIDTH, BAR_HEIGHT)
-};
-
-const ball = new Ball(BALL_SIZE);
-
-// Reset game to initial state
-function reset() {
-    bars.left.x = SWIDTH * BAR_X_OFFSET;
-    bars.left.y = HSHEIGHT;
-    bars.right.x = SWIDTH - (SWIDTH * BAR_X_OFFSET);
-    bars.right.y = HSHEIGHT;
-    ball.x = HSWIDTH;
-    ball.y = HSHEIGHT;
-
-    const angle = (BALL_ANGLES[floor(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;
-    ball.direction.x = cos(angle);
-    ball.direction.y = sin(angle);
-    ball.speed = BALL_SPEED;
-}
-
-// https://codeincomplete.com/articles/javascript-pong/part4/
-function checkCollision(bar, ball) {
-    const pt = ballIntercept(ball, bar, ball.direction.x * ball.speed, ball.direction.y * ball.speed);
-    if (!pt) {
-        return;
-    }
-
-    switch(pt.d) {
-        case 'left':
-        case 'right':
-            ball.x = pt.x;
-            ball.direction.x *= -1;
-            break;
-        case 'top':
-        case 'bottom':
-            ball.y = pt.y;
-            ball.direction.y *= -1;
-            break;
-        default:
-            break;
-    }
-
-    ball.speed *= BALL_ACCELERATION;
-}
-
-function update(deltaTime) {
-    // tick the game elements
-    aiController.update(bars.right, ball, deltaTime);
-    bars.left.update(deltaTime);
-    bars.right.update(deltaTime);
-    ball.update(deltaTime);
-
-    // check for collisions between ball and bars
-    if (ball.direction.x < 0) {
-        checkCollision(bars.left, ball);
-    } else {
-        checkCollision(bars.right, ball);
-    }
-
-    // check game over
-    if (ball.x < 0 || ball.x > SWIDTH) {
-        if (ball.x < 0) {
-            aiController.score = min(aiController.score + 1, MAX_SCORE);
-        } else {
-            playerController.score = min(playerController.score + 1, MAX_SCORE);
-        }
-        reset();
-    }
-}
-
-function drawPlayerUI(controller) {
-    const isLeft = controller.pid === P1;
-    const label = controller.label.toUpperCase()
-
-    falign(isLeft ? 0 : 1, 0);
-    fdraw(FONT, isLeft ? `P1:${label}` : `${label}:P2`, isLeft ? 2 : SWIDTH - 1, 2);
-
-    falign(isLeft ? 1 : 0, 0);
-    fdraw(FONT, controller.score.toString(), HSWIDTH + (isLeft ? - 2 : 2), 2);
-}
-
-function draw() {
-    clear(COLOR_LIGHT);
-    camera(HSWIDTH, HSHEIGHT);
-
-    // Draw game elements
-    bars.left.draw();
-    bars.right.draw();
-    ball.draw();
-
-    // Draw UI top and bottom backgrounds
-    sclear();
-    sscale(SWIDTH / 8, HEADER_HEIGHT / 8);
-    stile(TILEMAP, 2, 1, 1, 1);
-    sdraw(0, 0);
-    sdraw(0, SHEIGHT - HEADER_HEIGHT);
-
-    // Draw score separator
-    fclear();
-    fcolor(COLOR_MEDIUM);
-    falign(0.5, 0);
-    fdraw(FONT, '-', HSWIDTH, 2);
-
-    // Draw players infos
-    drawPlayerUI(playerController);
-    drawPlayerUI(aiController);
-}
-
-reset();
-
-function tick(deltaTime) {
-    update(deltaTime);
-    draw();
-}
-
-function getStateForAgent() {
-    return {
-        bars: [
-            bars.left.state,
-            bars.right.state
-        ],
-        ball: ball.state
-    };
-}
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define([], factory);
+	else {
+		var a = factory();
+		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
+	}
+})(self, () => {
+return /******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/game.ts":
+/*!*********************!*\
+  !*** ./src/game.ts ***!
+  \*********************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n// Colors from palette.png\nconst COLOR_BG = 0xcadc9f;\nconst COLOR_DARK = 0x0f380f;\nconst COLOR_MEDIUM = 0x306230;\nconst COLOR_LIGHT = 0x8bac0f;\nconst COLOR_LIGHTER = 0x9bbc0f;\n// Define game constants here\nconst HEADER_HEIGHT = 8;\nconst HSWIDTH = SWIDTH / 2.0;\nconst HSHEIGHT = SHEIGHT / 2.0;\nconst TOP_GAME_Y = HEADER_HEIGHT;\nconst BOTTOM_GAME_Y = SHEIGHT - HEADER_HEIGHT;\nconst BAR_HEIGHT = 12;\nconst BAR_WIDTH = 4;\nconst BAR_SPEED = 1;\nconst BAR_X_OFFSET = 0.1;\nconst BAR_AI_THRESHOLD = 0.25;\nconst BALL_SIZE = 2;\nconst BALL_ANGLES = [45, -45, 135, 225];\nconst BALL_SPEED = 1.0;\nconst BALL_ACCELERATION = 1.05;\nconst MAX_SCORE = 99;\nconst TILEMAP = tmap(\"tilemap\");\nconst FONT = fnt(\"MoroboxAIRetro\");\nconst AI_LEVELS = [\n    { reaction: 0.2, error: 40 },\n    { reaction: 0.3, error: 50 },\n    { reaction: 0.4, error: 60 },\n    { reaction: 0.5, error: 70 },\n    { reaction: 0.6, error: 80 },\n    { reaction: 0.7, error: 90 },\n    { reaction: 0.8, error: 100 },\n    { reaction: 0.9, error: 110 },\n    { reaction: 1.0, error: 120 },\n    { reaction: 1.1, error: 130 },\n    { reaction: 1.2, error: 140 },\n    { reaction: 1.3, error: 150 },\n    { reaction: 1.4, error: 160 },\n    { reaction: 1.5, error: 170 },\n    { reaction: 1.6, error: 180 },\n    { reaction: 1.7, error: 190 },\n    { reaction: 1.8, error: 200 }, // 16: ai is winning by 8\n];\nconst AI_LEVEL_MEDIUM = 8;\n// Base class for the bars and the ball\nclass Entity {\n    constructor(width, height) {\n        this.x = 0;\n        this.y = 0;\n        this.width = width;\n        this.height = height;\n    }\n    get hwidth() {\n        return this.width / 2.0;\n    }\n    get hheight() {\n        return this.height / 2.0;\n    }\n    get left() {\n        return this.x - this.hwidth;\n    }\n    get right() {\n        return this.x + this.hwidth;\n    }\n    get top() {\n        return this.y - this.hheight;\n    }\n    get bottom() {\n        return this.y + this.hheight;\n    }\n    // Get the state of this entity as a JSON dict\n    get state() {\n        throw new Error(\"state must be implemented\");\n    }\n    // Update the physics\n    update(deltaTime) {\n        throw new Error(\"update must be implemented\");\n    }\n    // Draw the sprite\n    draw() {\n        throw new Error(\"draw must be implemented\");\n    }\n}\n// Class for the player and AI bars\nclass Bar extends Entity {\n    constructor(controller, width, height) {\n        super(width, height);\n        this._controller = controller;\n    }\n    // Informations sent to AIs\n    get state() {\n        return {\n            x: this.x,\n            y: this.y,\n        };\n    }\n    // Update bar position and check collisions with screen bounds\n    update(delta) {\n        const inputs = this._controller.inputs();\n        if (inputs.up) {\n            this.y -= BAR_SPEED * delta;\n        }\n        else if (inputs.down) {\n            this.y += BAR_SPEED * delta;\n        }\n        if (this.y < TOP_GAME_Y + this.hheight) {\n            this.y = TOP_GAME_Y + this.hheight;\n        }\n        else if (this.y > BOTTOM_GAME_Y - this.hheight) {\n            this.y = BOTTOM_GAME_Y - this.hheight;\n        }\n    }\n    draw() {\n        sclear();\n        stile(TILEMAP, 0, 0, 1, 2);\n        sorigin(4, 8);\n        sdraw(this.x, this.y);\n    }\n}\n// Class for the ball\nclass Ball extends Entity {\n    constructor(size) {\n        super(size, size);\n        this.direction = { x: 0, y: 0 };\n        this.speed = 0;\n    }\n    // Informations sent to AIs\n    get state() {\n        return {\n            x: this.x,\n            y: this.y,\n        };\n    }\n    get radius() {\n        return this.hwidth;\n    }\n    // Update ball position and check collisions with screen bounds\n    update(delta) {\n        this.x += this.direction.x * this.speed * delta;\n        this.y += this.direction.y * this.speed * delta;\n        if (this.y < TOP_GAME_Y + this.hheight) {\n            this.y = TOP_GAME_Y + this.hheight;\n            this.direction.y *= -1;\n        }\n        else if (this.y > BOTTOM_GAME_Y - this.hheight) {\n            this.y = BOTTOM_GAME_Y - this.hheight;\n            this.direction.y *= -1;\n        }\n    }\n    draw() {\n        sclear();\n        stile(TILEMAP, 1, 0, 1, 1);\n        sorigin(4, 4);\n        sdraw(this.x, this.y);\n    }\n}\n// Collision detection https://codeincomplete.com/articles/javascript-pong/part4/\nfunction ballIntercept(ball, rect, nx, ny) {\n    let pt;\n    if (nx < 0) {\n        pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny, rect.right + ball.radius, rect.top - ball.radius, rect.right + ball.radius, rect.bottom + ball.radius, \"right\");\n    }\n    else if (nx > 0) {\n        pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny, rect.left - ball.radius, rect.top - ball.radius, rect.left - ball.radius, rect.bottom + ball.radius, \"left\");\n    }\n    if (!pt) {\n        if (ny < 0) {\n            pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny, rect.left - ball.radius, rect.bottom + ball.radius, rect.right + ball.radius, rect.bottom + ball.radius, \"bottom\");\n        }\n        if (ny > 0) {\n            pt = intercept(ball.x, ball.y, ball.x + nx, ball.y + ny, rect.left - ball.radius, rect.top - ball.radius, rect.right + ball.radius, rect.top - ball.radius, \"top\");\n        }\n    }\n    return pt;\n}\nfunction intercept(x1, y1, x2, y2, x3, y3, x4, y4, d) {\n    var denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);\n    if (denom != 0) {\n        var ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;\n        if (ua >= 0 && ua <= 1) {\n            var ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;\n            if (ub >= 0 && ub <= 1) {\n                var x = x1 + ua * (x2 - x1);\n                var y = y1 + ua * (y2 - y1);\n                return { x: x, y: y, d: d };\n            }\n        }\n    }\n    return null;\n}\nclass PlayerController {\n    constructor(pid) {\n        this._pid = pid;\n        this.score = 0;\n    }\n    get pid() {\n        return this._pid;\n    }\n    get label() {\n        return \"human\";\n    }\n    sendState(val) {\n        state(this._pid, val);\n    }\n    inputs() {\n        return {\n            left: btn(this._pid, BLEFT),\n            right: btn(this._pid, BRIGHT),\n            up: btn(this._pid, BUP),\n            down: btn(this._pid, BDOWN),\n        };\n    }\n}\n// Builtin AI controller that can be overriden by user AI\n// From https://codeincomplete.com/articles/javascript-pong/part5/\nclass AIController extends PlayerController {\n    constructor(pid) {\n        super(pid);\n        // Inputs of the builtin AI\n        this._inputs = {};\n        this._prediction = undefined;\n        // AI level = difficulty\n        this._level = AI_LEVEL_MEDIUM;\n    }\n    get label() {\n        return \"ai\";\n    }\n    sendState(val) {\n        state(this.pid, val);\n    }\n    inputs() {\n        // override with user AI\n        if (this.isBound) {\n            return super.inputs();\n        }\n        return this._inputs;\n    }\n    _predict(bar, ball, delta) {\n        if (this._prediction &&\n            this._prediction.dX * ball.direction.x > 0 &&\n            this._prediction.dY * ball.direction.y > 0 &&\n            this._prediction.since < AI_LEVELS[this._level].reaction) {\n            this._prediction.since += delta;\n            return;\n        }\n        const pt = ballIntercept(ball, { left: bar.left, right: bar.right, top: -10000, bottom: 10000 }, ball.direction.x * SWIDTH, ball.direction.y * SWIDTH);\n        if (pt) {\n            this._prediction = {\n                dX: ball.direction.x,\n                dY: ball.direction.y,\n                y: pt.y,\n                since: 0,\n            };\n            const closeness = (ball.direction.x < 0 ? ball.x - bar.right : bar.left - ball.x) /\n                SWIDTH;\n            const error = AI_LEVELS[this._level].error * closeness;\n            this._prediction.y =\n                this._prediction.y + (Math.random() * 2.0 - 1.0) * error;\n        }\n        else {\n            this._prediction = undefined;\n            return;\n        }\n    }\n    update(bar, ball, delta) {\n        this._inputs.up = false;\n        this._inputs.down = false;\n        if ((ball.x < bar.x && ball.direction.x < 0) ||\n            (ball.x > bar.x && ball.direction.x > 0)) {\n            return;\n        }\n        this._predict(bar, ball, delta);\n        if (this._prediction) {\n            if (this._prediction.y < bar.y - bar.height * BAR_AI_THRESHOLD) {\n                this._inputs.up = true;\n                this._inputs.down = false;\n            }\n            else if (this._prediction.y > bar.y + bar.height * BAR_AI_THRESHOLD) {\n                this._inputs.up = false;\n                this._inputs.down = true;\n            }\n        }\n    }\n}\nconst playerController = new PlayerController(P1);\nconst aiController = new AIController(P2);\nconst bars = {\n    left: new Bar(playerController, BAR_WIDTH, BAR_HEIGHT),\n    right: new Bar(aiController, BAR_WIDTH, BAR_HEIGHT),\n};\nconst ball = new Ball(BALL_SIZE);\n// Reset game to initial state\nfunction reset() {\n    bars.left.x = SWIDTH * BAR_X_OFFSET;\n    bars.left.y = HSHEIGHT;\n    bars.right.x = SWIDTH - SWIDTH * BAR_X_OFFSET;\n    bars.right.y = HSHEIGHT;\n    ball.x = HSWIDTH;\n    ball.y = HSHEIGHT;\n    const angle = (BALL_ANGLES[floor(Math.random() * BALL_ANGLES.length)] * Math.PI) / 180.0;\n    ball.direction.x = cos(angle);\n    ball.direction.y = sin(angle);\n    ball.speed = BALL_SPEED;\n}\n// https://codeincomplete.com/articles/javascript-pong/part4/\nfunction checkCollision(bar, ball) {\n    const pt = ballIntercept(ball, bar, ball.direction.x * ball.speed, ball.direction.y * ball.speed);\n    if (!pt) {\n        return;\n    }\n    switch (pt.d) {\n        case \"left\":\n        case \"right\":\n            ball.x = pt.x;\n            ball.direction.x *= -1;\n            break;\n        case \"top\":\n        case \"bottom\":\n            ball.y = pt.y;\n            ball.direction.y *= -1;\n            break;\n        default:\n            break;\n    }\n    ball.speed *= BALL_ACCELERATION;\n}\nfunction update(deltaTime) {\n    // tick the game elements\n    aiController.update(bars.right, ball, deltaTime);\n    bars.left.update(deltaTime);\n    bars.right.update(deltaTime);\n    ball.update(deltaTime);\n    // check for collisions between ball and bars\n    if (ball.direction.x < 0) {\n        checkCollision(bars.left, ball);\n    }\n    else {\n        checkCollision(bars.right, ball);\n    }\n    // check game over\n    if (ball.x < 0 || ball.x > SWIDTH) {\n        if (ball.x < 0) {\n            aiController.score = min(aiController.score + 1, MAX_SCORE);\n        }\n        else {\n            playerController.score = min(playerController.score + 1, MAX_SCORE);\n        }\n        reset();\n    }\n}\nfunction drawPlayerUI(controller) {\n    const isLeft = controller.pid === P1;\n    const label = controller.label.toUpperCase();\n    falign(isLeft ? 0 : 1, 0);\n    fdraw(FONT, isLeft ? `P1:${label}` : `${label}:P2`, isLeft ? 2 : SWIDTH - 1, 2);\n    falign(isLeft ? 1 : 0, 0);\n    fdraw(FONT, controller.score.toString(), HSWIDTH + (isLeft ? -2 : 2), 2);\n}\nfunction draw() {\n    clear(COLOR_LIGHT);\n    camera(HSWIDTH, HSHEIGHT);\n    // Draw game elements\n    bars.left.draw();\n    bars.right.draw();\n    ball.draw();\n    // Draw UI top and bottom backgrounds\n    sclear();\n    sscale(SWIDTH / 8, HEADER_HEIGHT / 8);\n    stile(TILEMAP, 2, 1, 1, 1);\n    sdraw(0, 0);\n    sdraw(0, SHEIGHT - HEADER_HEIGHT);\n    // Draw score separator\n    fclear();\n    fcolor(COLOR_MEDIUM);\n    falign(0.5, 0);\n    fdraw(FONT, \"-\", HSWIDTH, 2);\n    // Draw players infos\n    drawPlayerUI(playerController);\n    drawPlayerUI(aiController);\n}\nreset();\nfunction tick(deltaTime) {\n    update(deltaTime);\n    draw();\n}\nfunction getStateForAgent() {\n    return {\n        bars: [bars.left.state, bars.right.state],\n        ball: ball.state,\n    };\n}\n\n\n\n//# sourceURL=webpack://pong/./src/game.ts?");
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The require scope
+/******/ 	var __webpack_require__ = {};
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module can't be inlined because the eval devtool is used.
+/******/ 	var __webpack_exports__ = {};
+/******/ 	__webpack_modules__["./src/game.ts"](0, __webpack_exports__, __webpack_require__);
+/******/ 	
+/******/ 	return __webpack_exports__;
+/******/ })()
+;
+});
