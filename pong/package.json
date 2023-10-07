@@ -1,36 +1,36 @@
 {
-  "name": "pong",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build:game": "gulp build-game",
-    "build:agent": "gulp build-agent",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "peerDependencies": {
-    "moroboxai-editor-web": "0.1.1-alpha.9",
-    "moroboxai-game-sdk": "^0.1.0-alpha.36",
-    "moroboxai-player-web": "^0.1.0-alpha.36"
-  },
-  "devDependencies": {
-    "@types/css-font-loading-module": "^0.0.9",
-    "eslint": "8.50.0",
-    "eslint-config-next": "13.5.3",
-    "gulp": "^4.0.2",
-    "gulp-typescript": "^6.0.0-alpha.1",
-    "moroboxai-editor-web": "0.1.1-alpha.9",
-    "moroboxai-game-sdk": "^0.1.0-alpha.36",
-    "moroboxai-player-web": "^0.1.0-alpha.36",
-    "prettier": "3.0.3",
-    "ts-loader": "^9.4.4",
-    "typescript": "5.2.2",
-    "vite": "4.4.9",
-    "vite-plugin-checker": "^0.6.2",
-    "webpack-stream": "^7.0.0"
-  },
-  "dependencies": {
-    "moroxel8ai": "^0.1.0-alpha.18"
-  }
+    "name": "pong",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "vite",
+        "build:game": "vite build",
+        "build:agent": "gulp build-agent",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "peerDependencies": {
+        "moroboxai-editor-web": "0.1.1-alpha.9",
+        "moroboxai-game-sdk": "^0.1.0-alpha.36",
+        "moroboxai-player-web": "^0.1.0-alpha.36"
+    },
+    "devDependencies": {
+        "@types/css-font-loading-module": "^0.0.9",
+        "eslint": "8.50.0",
+        "eslint-config-next": "13.5.3",
+        "gulp": "^4.0.2",
+        "gulp-typescript": "^6.0.0-alpha.1",
+        "moroboxai-editor-web": "0.1.1-alpha.9",
+        "moroboxai-game-sdk": "^0.1.0-alpha.36",
+        "moroboxai-player-web": "^0.1.0-alpha.36",
+        "prettier": "3.0.3",
+        "ts-loader": "^9.4.4",
+        "typescript": "5.2.2",
+        "vite": "4.4.9",
+        "vite-plugin-checker": "^0.6.2",
+        "webpack-stream": "^7.0.0"
+    },
+    "dependencies": {
+        "moroxel8ai": "^0.1.0-alpha.18"
+    }
 }
