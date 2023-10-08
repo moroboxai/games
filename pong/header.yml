@@ -1,3 +1,6 @@
+id: pong
+title: Pong
+date: 2023-01-01
 assets:
   - name: palette
     path: palette.png
