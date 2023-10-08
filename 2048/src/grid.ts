@@ -1,5 +1,9 @@
+import type { IVM } from "piximoroxel8ai";
 import Block from "./block";
 import { Tile, Position } from "./utils";
+
+// Instance of the VM
+declare const vm: IVM;
 
 export interface ITraversals {
     x: number[];
@@ -19,7 +23,7 @@ export interface IGridOptions {
     style: IGridStyle;
 }
 
-export default class Grid extends PIXI.Container {
+export default class Grid extends vm.PIXI.Container {
     private _style: IGridStyle;
     private _size: number;
     private _tiles: Block[][];
@@ -30,7 +34,7 @@ export default class Grid extends PIXI.Container {
         this._size = options.size;
 
         // Create the background
-        const background = new PIXI.Sprite(options.style.backgroundTexture);
+        const background = new vm.PIXI.Sprite(options.style.backgroundTexture);
         const gutterSize =
             options.style.marginSize * 2 +
             options.style.separatorSize * (options.size - 1);
@@ -47,7 +51,9 @@ export default class Grid extends PIXI.Container {
 
                 // Add a sprite for the tile
                 const position = this.tilePosition({ i, j });
-                const sprite = new PIXI.Sprite(options.style.emptyTileTexture);
+                const sprite = new vm.PIXI.Sprite(
+                    options.style.emptyTileTexture
+                );
                 sprite.anchor.set(0.5);
                 sprite.position.set(position.x, position.y);
                 this.addChild(sprite);

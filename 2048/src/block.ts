@@ -1,3 +1,8 @@
+import type { IVM } from "piximoroxel8ai";
+
+// Instance of the VM
+declare const vm: IVM;
+
 export interface IBlockColors {
     textColor: number;
     backgroundColor: number;
@@ -30,7 +35,7 @@ export enum EBlockMode {
     MERGE
 }
 
-export default class Block extends PIXI.Sprite {
+export default class Block extends vm.PIXI.Sprite {
     private _style: IBlockStyle;
     private _text: PIXI.BitmapText;
     private _value: number;
@@ -47,10 +52,10 @@ export default class Block extends PIXI.Sprite {
         this.texture = options.style.backgroundTexture;
 
         // Create the label
-        this._text = new PIXI.BitmapText("", {
+        this._text = new vm.PIXI.BitmapText("", {
             fontName: options.style.smallFontName
         });
-        this._text.anchor = new PIXI.Point(0.5, 0.5);
+        this._text.anchor = new vm.PIXI.Point(0.5, 0.5);
         this._text.position.set(0, 0);
         this.addChild(this._text);
 

@@ -95,7 +95,7 @@ export interface IGameState {
     grid: number[][];
 }
 
-class GameManager extends PIXI.Container {
+class GameManager extends vm.PIXI.Container {
     private header: Header;
     private grid: Grid;
     private _startTiles: number;
@@ -361,7 +361,7 @@ export function load(): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
         console.log("load assets");
         // load the fonts
-        const loader = new PIXI.Loader();
+        const loader = new vm.PIXI.Loader();
 
         loader.add(vm.gameServer.href(`assets/MoroboxAIRetro.fnt`));
         loader.add(vm.gameServer.href(`assets/2048Small.fnt`));
@@ -376,22 +376,22 @@ export function load(): Promise<void> {
             const tileset = loader.resources.tileset.texture;
 
             // generate textures used by the game
-            HEADER_STYLE.backgroundTexture = new PIXI.Texture(
+            HEADER_STYLE.backgroundTexture = new vm.PIXI.Texture(
                 tileset.baseTexture,
-                new PIXI.Rectangle(0, 0, 16, 16)
+                new vm.PIXI.Rectangle(0, 0, 16, 16)
             );
-            GRID_STYLE.backgroundTexture = new PIXI.Texture(
+            GRID_STYLE.backgroundTexture = new vm.PIXI.Texture(
                 tileset.baseTexture,
-                new PIXI.Rectangle(0, 0, 16, 16)
+                new vm.PIXI.Rectangle(0, 0, 16, 16)
             );
             const tileSize = GRID_STYLE.tileSize;
-            GRID_STYLE.emptyTileTexture = new PIXI.Texture(
+            GRID_STYLE.emptyTileTexture = new vm.PIXI.Texture(
                 tileset.baseTexture,
-                new PIXI.Rectangle(19, 3, tileSize, tileSize)
+                new vm.PIXI.Rectangle(19, 3, tileSize, tileSize)
             );
-            BLOCK_STYLE.backgroundTexture = new PIXI.Texture(
+            BLOCK_STYLE.backgroundTexture = new vm.PIXI.Texture(
                 tileset.baseTexture,
-                new PIXI.Rectangle(51, 3, tileSize, tileSize)
+                new vm.PIXI.Rectangle(51, 3, tileSize, tileSize)
             );
 
             // Create the manager instance
