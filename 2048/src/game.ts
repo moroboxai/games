@@ -1,4 +1,4 @@
-import type { Inputs } from "moroboxai-game-sdk";
+import type { Controller } from "moroboxai-game-sdk";
 import type { IVM } from "piximoroxel8ai";
 import Grid, { IGridStyle } from "./grid";
 import Header, { IHeaderStyle } from "./header";
@@ -109,7 +109,7 @@ class GameManager extends PIXI.Container {
 
         // Create the UI
         this.header = new Header({
-            width: vm.SWIDTH,
+            width: vm.width,
             height: HEADER_HEIGHT,
             style: HEADER_STYLE
         });
@@ -363,12 +363,12 @@ export function load(): Promise<void> {
         // load the fonts
         const loader = new PIXI.Loader();
 
-        loader.add(vm.player.gameServer.href(`assets/MoroboxAIRetro.fnt`));
-        loader.add(vm.player.gameServer.href(`assets/2048Small.fnt`));
-        loader.add(vm.player.gameServer.href(`assets/2048Big.fnt`));
+        loader.add(vm.gameServer.href(`assets/MoroboxAIRetro.fnt`));
+        loader.add(vm.gameServer.href(`assets/2048Small.fnt`));
+        loader.add(vm.gameServer.href(`assets/2048Big.fnt`));
 
         // load the tileset
-        loader.add("tileset", vm.player.gameServer.href(`assets/tileset.png`));
+        loader.add("tileset", vm.gameServer.href(`assets/tileset.png`));
 
         loader.onComplete.add(() => {
             console.log("assets loaded");
@@ -410,14 +410,16 @@ export function load(): Promise<void> {
  * Ticks the game.
  * @param {number} delta - elapsed time
  */
-export function tick(inputs: Array<Inputs>, delta: number) {
-    if (inputs[0].left) {
+export function tick(controllers: Array<Controller>, delta: number) {
+    const inputs = controllers[0].inputs;
+
+    if (inputs.left) {
         gameManager.move(EDirection.LEFT);
-    } else if (inputs[0].right) {
+    } else if (inputs.right) {
         gameManager.move(EDirection.RIGHT);
-    } else if (inputs[0].up) {
+    } else if (inputs.up) {
         gameManager.move(EDirection.UP);
-    } else if (inputs[0].down) {
+    } else if (inputs.down) {
         gameManager.move(EDirection.DOWN);
     }
 
