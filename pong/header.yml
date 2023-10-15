@@ -11,4 +11,7 @@ assets:
     path: MoroboxAIRetro.fnt
 boot: Moroxel8AI
 main: game.js
-aspectRatio: 4/3
+width: 170
+height: 128
+aspectRatio: 170/128
+scale: 0.5

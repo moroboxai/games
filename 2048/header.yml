@@ -6,4 +6,7 @@ date: 2023-10-01
 boot: PixiMoroxel8AI
 # Defines the main script of the game
 main: game.js
+width: 128
+height: 150
 aspectRatio: 128/150
+scale: 0.5
