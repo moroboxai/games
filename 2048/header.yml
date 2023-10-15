@@ -1,5 +1,6 @@
 id: "2048"
 title: "2048"
+previewUrl: assets/preview.png
 date: 2023-10-01
 # Defines the JS module used to boot the game
 boot: PixiMoroxel8AI

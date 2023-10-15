@@ -1,5 +1,6 @@
 id: pong
 title: Pong
+previewUrl: assets/preview.png
 date: 2023-01-01
 assets:
   - name: palette
