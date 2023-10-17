@@ -1,11 +1,10 @@
 import { defineConfig } from "vite";
-import checker from 'vite-plugin-checker';
+import checker from "vite-plugin-checker";
 const { resolve } = require("path");
 
 export default defineConfig({
-    plugins: [checker({typescript: true})],
+    plugins: [checker({ typescript: true })],
     build: {
-        minify: false,
         emptyOutDir: false,
         outDir: resolve(__dirname),
         lib: {
@@ -17,7 +16,7 @@ export default defineConfig({
                     case "umd":
                         return `game.js`;
                 }
-            }
-        }
-    }
+            },
+        },
+    },
 });

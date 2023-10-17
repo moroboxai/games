@@ -4,8 +4,8 @@
     "private": true,
     "scripts": {
         "dev": "vite",
-        "build:game": "vite build",
-        "build:agent": "gulp build-agent",
+        "build:game": "vite build --config vite.config.game.js",
+        "build:agent": "vite build --config vite.config.agent.js",
         "start": "next start",
         "lint": "next lint"
     },

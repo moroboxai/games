@@ -12,17 +12,11 @@
         "declaration": false,
         "strict": false,
         "stripInternal": true,
-        "lib": [
-            "es5",
-            "es6",
-            "dom"
-        ],
+        "lib": ["es5", "es6", "dom"],
         "paths": {
             "@/*": ["./src/*"]
         }
     },
-    "include": [
-        "**/*.ts"
-    ],
+    "include": ["**/*.ts"],
     "exclude": ["node_modules"]
 }
