@@ -289,6 +289,7 @@ class GameManager extends vm.PIXI.Container {
             return;
         }
 
+        console.log("move", direction);
         let moved: boolean = false;
         const vector = getVector(direction);
         const traversals = this.grid.buildTraversals(vector);
@@ -341,6 +342,7 @@ class GameManager extends vm.PIXI.Container {
 
     gameOver() {
         this.mode = EGameMode.GAME_OVER;
+        console.log("game over");
     }
 
     tick(delta: number) {
@@ -449,7 +451,6 @@ export function tick(controllers: Controller[], delta: number) {
     } else if (inputs.right) {
         gameManager.move(EDirection.RIGHT);
     } else if (inputs.up) {
-        console.log("up");
         gameManager.move(EDirection.UP);
     } else if (inputs.down) {
         gameManager.move(EDirection.DOWN);
