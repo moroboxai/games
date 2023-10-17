@@ -441,7 +441,7 @@ export function load(): Promise<void> {
  * Ticks the game.
  * @param {number} delta - elapsed time
  */
-export function tick(controllers: Array<Controller>, delta: number) {
+export function tick(controllers: Controller[], delta: number) {
     const inputs = controllers[0].inputs;
 
     if (inputs.left) {
@@ -449,6 +449,7 @@ export function tick(controllers: Array<Controller>, delta: number) {
     } else if (inputs.right) {
         gameManager.move(EDirection.RIGHT);
     } else if (inputs.up) {
+        console.log("up");
         gameManager.move(EDirection.UP);
     } else if (inputs.down) {
         gameManager.move(EDirection.DOWN);
