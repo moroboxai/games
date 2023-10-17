@@ -505,6 +505,10 @@ function checkCollision(bar: Bar, ball: Ball) {
 }
 
 function update(deltaTime: number) {
+    if (mode === EGameMode.GAME_OVER) {
+        return;
+    }
+
     // tick the game elements
     aiController.update(bars.right, ball, deltaTime);
     bars.left.update(deltaTime);
@@ -526,6 +530,13 @@ function update(deltaTime: number) {
             playerController.score = min(playerController.score + 1, MAX_SCORE);
         }
         reset();
+
+        if (
+            aiController.score === MAX_SCORE ||
+            playerController.score === MAX_SCORE
+        ) {
+            mode = EGameMode.GAME_OVER;
+        }
     }
 }
 
