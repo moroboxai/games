@@ -90,6 +90,11 @@ export type GameSaveState = MoroboxAIGameSDK.GameSaveState & {
     moveDirection: EDirection;
 };
 
+export interface AgentGameState {
+    score: number;
+    grid: number[][];
+}
+
 class GameManager extends vm.PIXI.Container {
     private header: Header;
     private grid: Grid;
@@ -460,6 +465,10 @@ export function saveState(): GameSaveState {
     return gameManager.saveState();
 }
 
-export function getStateForAgent(): GameSaveState {
-    return saveState();
+export function getStateForAgent(): AgentGameState {
+    const state = saveState();
+    return {
+        score: state.score,
+        grid: state.grid
+    };
 }

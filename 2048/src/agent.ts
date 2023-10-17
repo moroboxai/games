@@ -1,5 +1,5 @@
 import type { Inputs } from "moroboxai-game-sdk";
-import type { GameSaveState } from "./game";
+import type { AgentGameState } from "./game";
 
 /**
  * Random agent.
@@ -10,7 +10,7 @@ import type { GameSaveState } from "./game";
  * The first step is to write an agent better
  * than this one !
  */
-export function inputs(state: GameSaveState): Inputs {
+export function inputs(state: AgentGameState): Inputs {
     return [{ left: true }, { right: true }, { up: true }, { down: true }][
         Math.floor(Math.random() * 4)
     ];
