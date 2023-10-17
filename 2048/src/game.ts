@@ -1,3 +1,4 @@
+import * as MoroboxAIGameSDK from "moroboxai-game-sdk";
 import type { Controller } from "moroboxai-game-sdk";
 import type { IVM } from "piximoroxel8ai";
 import Grid, { IGridStyle } from "./grid";
@@ -89,11 +90,12 @@ enum EGameMode {
     PLAY = 0,
     GAME_OVER
 }
-export interface IGameState {
+export type GameSaveState = MoroboxAIGameSDK.GameSaveState & {
     mode: EGameMode;
-    moveDirection: EDirection;
+    score: number;
     grid: number[][];
-}
+    moveDirection: EDirection;
+};
 
 class GameManager extends vm.PIXI.Container {
     private header: Header;
@@ -103,6 +105,7 @@ class GameManager extends vm.PIXI.Container {
     private mode: EGameMode;
     private moveDirection: EDirection;
     private _tweens: ITween[] = [];
+    private _score: number;
 
     constructor() {
         super();
@@ -136,12 +139,22 @@ class GameManager extends vm.PIXI.Container {
         this.reset();
     }
 
+    get score(): number {
+        return this._score;
+    }
+
+    set score(value: number) {
+        this._score = value;
+        this.header.score = value;
+    }
+
     reset() {
         this.header.reset();
         this.clear();
         this.addStartBlocks();
         this.mode = EGameMode.PLAY;
         this.moveDirection = EDirection.UP;
+        this.score = 0;
     }
 
     clear() {
@@ -220,7 +233,7 @@ class GameManager extends vm.PIXI.Container {
         }
     }
 
-    moveBlock(from: Tile, to: Tile) {
+    moveBlock(from: Tile, to: Tile): number | undefined {
         const block = this.grid.tileContent(from);
         if (block === null) {
             return;
@@ -250,11 +263,8 @@ class GameManager extends vm.PIXI.Container {
             block.mode = EBlockMode.MOVE_AND_MERGE;
 
             // Merge animation
-            const mergeTween = new MergeBlockTween(
-                destBlock,
-                destBlock.value * 2,
-                0.1
-            );
+            const newValue = destBlock.value * 2;
+            const mergeTween = new MergeBlockTween(destBlock, newValue, 0.1);
             mergeTween.then(() => {
                 destBlock.mode = EBlockMode.IDLE;
             });
@@ -264,10 +274,15 @@ class GameManager extends vm.PIXI.Container {
             moveTween.then(() => {
                 this.releaseBlock(block);
             });
+
+            // Update score
+            this.score += newValue;
+            return newValue;
         } else {
             // Set the destination tile
             this.grid.setBlock(to, block);
             block.mode = EBlockMode.MOVE;
+            return undefined;
         }
     }
 
@@ -289,12 +304,10 @@ class GameManager extends vm.PIXI.Container {
                     return;
                 }
 
-                const currentPosition = {
-                    x: block.position.x,
-                    y: block.position.y
-                };
                 const positions = this.grid.findFarthestPosition(tile, vector);
                 const next = this.grid.tileContent(positions.next);
+                let mergeValue: number | undefined = undefined;
+
                 if (
                     next !== null &&
                     next !== block &&
@@ -302,11 +315,15 @@ class GameManager extends vm.PIXI.Container {
                     next.mode !== EBlockMode.MERGE &&
                     next.value === block.value
                 ) {
-                    this.moveBlock(tile, positions.next);
+                    mergeValue = this.moveBlock(tile, positions.next);
                     moved = true;
                 } else if (positions.farthest !== tile) {
-                    this.moveBlock(tile, positions.farthest);
+                    mergeValue = this.moveBlock(tile, positions.farthest);
                     moved = true;
+                }
+
+                if (mergeValue === 2048) {
+                    this.win();
                 }
             });
         });
@@ -315,9 +332,17 @@ class GameManager extends vm.PIXI.Container {
             this.addRandomBlock();
 
             if (!this.grid.movesAvailable) {
-                this.mode = EGameMode.GAME_OVER;
+                this.gameOver();
             }
         }
+    }
+
+    win() {
+        this.gameOver();
+    }
+
+    gameOver() {
+        this.mode = EGameMode.GAME_OVER;
     }
 
     tick(delta: number) {
@@ -330,8 +355,9 @@ class GameManager extends vm.PIXI.Container {
         }
     }
 
-    loadState(state: IGameState) {
+    loadState(state: GameSaveState) {
         this.mode = state.mode;
+        this.score = state.score;
         this.moveDirection = state.moveDirection;
         this.clear();
         state.grid.map((line, i) =>
@@ -343,12 +369,14 @@ class GameManager extends vm.PIXI.Container {
         );
     }
 
-    saveState(): IGameState {
+    saveState(): GameSaveState {
         // Send the blocks to agent
         return {
+            isGameOver: this.mode === EGameMode.GAME_OVER,
             mode: this.mode,
-            moveDirection: this.moveDirection,
-            grid: this.grid.saveState()
+            score: this.score,
+            grid: this.grid.saveState(),
+            moveDirection: this.moveDirection
         };
     }
 }
@@ -426,14 +454,14 @@ export function tick(controllers: Array<Controller>, delta: number) {
     gameManager.tick(delta);
 }
 
-export function loadState(state: IGameState) {
+export function loadState(state: GameSaveState) {
     gameManager.loadState(state);
 }
 
-export function saveState(): IGameState {
+export function saveState(): GameSaveState {
     return gameManager.saveState();
 }
 
-export function getStateForAgent(): IGameState {
+export function getStateForAgent(): GameSaveState {
     return saveState();
 }

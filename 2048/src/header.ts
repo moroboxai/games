@@ -17,7 +17,6 @@ export interface IHeaderOptions {
 
 export default class Header extends vm.PIXI.Container {
     private _text: PIXI.BitmapText;
-    private _score: number;
 
     constructor(options: IHeaderOptions) {
         super();
@@ -39,7 +38,6 @@ export default class Header extends vm.PIXI.Container {
     }
 
     set score(val: number) {
-        this._score = val;
         this._text.text = val.toString();
     }
 
