@@ -1,17 +1,10 @@
 import * as MoroboxAIGameSDK from "moroboxai-game-sdk";
 import type { Controller } from "moroboxai-game-sdk";
-import type { IVM } from "piximoroxel8ai";
 import Grid, { IGridStyle } from "./grid";
 import Header, { IHeaderStyle } from "./header";
 import { EDirection, getVector, Tile } from "./utils";
 import Block, { EBlockMode, IBlockStyle } from "./block";
 import { ITween, MergeBlockTween, MoveBlockTween } from "./tween";
-
-// Instance of the VM
-declare const vm: IVM;
-
-// Instance of pixi.js stage
-declare const stage: PIXI.Container;
 
 // Activate debug mode
 const DEBUG: boolean = false;
@@ -355,7 +348,12 @@ class GameManager extends vm.PIXI.Container {
         }
     }
 
-    loadState(state: GameSaveState) {
+    loadState(state?: GameSaveState) {
+        if (state === undefined) {
+            this.reset();
+            return;
+        }
+
         this.mode = state.mode;
         this.score = state.score;
         this.moveDirection = state.moveDirection;
@@ -386,7 +384,7 @@ class GameManager extends vm.PIXI.Container {
  */
 export function load(): Promise<void> {
     console.log("load called");
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>(async (resolve) => {
         console.log("load assets");
         // load the fonts
         const loader = new vm.PIXI.Loader();
@@ -425,7 +423,7 @@ export function load(): Promise<void> {
             // Create the manager instance
             gameManager = new GameManager();
             gameManager.reset();
-            stage.addChild(gameManager);
+            vm.stage.addChild(gameManager);
 
             resolve();
         });
@@ -454,7 +452,7 @@ export function tick(controllers: Array<Controller>, delta: number) {
     gameManager.tick(delta);
 }
 
-export function loadState(state: GameSaveState) {
+export function loadState(state?: GameSaveState) {
     gameManager.loadState(state);
 }
 
